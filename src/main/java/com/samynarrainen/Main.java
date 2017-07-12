@@ -1,6 +1,5 @@
 package com.samynarrainen;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.DatatypeConverter;
@@ -17,14 +16,15 @@ import java.util.regex.Pattern;
 public class Main {
 
     public static final String WATCHED = "1", WATCHING = "2", DROPPED = "3", WANT_TO_WATCH = "4", STALLED = "5", NONE = "-1";
+
+    //TODO split entries across status to improve performance.
     public static final List<Entry> entries = new ArrayList<Entry>();
     public static final List<Entry> problems = new ArrayList<Entry>();
 
     public static final boolean STRICT = true;
-
+    public static final boolean IGNORE_CASE = true;
 
     public static void main(String[] args) throws Exception {
-
         int pages = 1;
         final String USER_AP = args[0];
         final String authentication = DatatypeConverter.printBase64Binary((args[1] + ':' + args[2]).getBytes());
@@ -143,7 +143,7 @@ public class Main {
                 }
             }
         }
-        Thread.sleep(1000);
+        Thread.sleep(500);
         return result;
     }
 
@@ -259,36 +259,46 @@ public class Main {
         String contents = getPageContents(new URL("https://myanimelist.net/search/all?q=" + name.replace(" ", "%20")));
 
         //Group 1: ID
-        //Group 2: Name
+        //Group 2: Title
         //String regexId = "href=\"https://myanimelist.net/anime/(\\d*?)/.*?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
         String regexId = "myanimelist.net/anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<.*?picSurround di-tc thumb\">";
         //String regexId = "myanimelist.net/anime/(\\d*)/\\w*?\"\\sclass=\"hoverinfo_trigger\"*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
         //String regexId = "<h2 id=\"anime\">Anime</h2>.*?href=\"https://myanimelist.net/anime/(.*?)/";
         Pattern patternId = Pattern.compile(regexId);
 
-        Matcher matcherId = patternId.matcher(contents);
+        Matcher matcher = patternId.matcher(contents);
         int idFirst = -1; //The first ID found, not necessarily the best though.
         String nameFirst = "";
 
+        if(IGNORE_CASE) {
+            name = name.toLowerCase();
+        }
+
         //Look through the entries for one that matches the given name perfectly.
         //Else use the first result.
-        while(matcherId.find()) {
+        while(matcher.find()) {
+            int id = Integer.parseInt(matcher.group(1));
+            String title = matcher.group(2);
 
-            if(name.equals(matcherId.group(2))) {
-                return new Result(Integer.parseInt(matcherId.group(1)), true);
+            if(IGNORE_CASE) {
+                title = title.toLowerCase();
+            }
+
+            if(name.equals(title)) {
+                return new Result(Integer.parseInt(matcher.group(1)), true);
             } else {
-                int distance = StringUtils.getLevenshteinDistance(name, matcherId.group(2));
+                int distance = StringUtils.getLevenshteinDistance(name, title);
                 if(distance < 3) {
-                    System.out.println("Lavenshtein Distance < 3 for \"" + name + "\" and \"" + matcherId.group(2) + "\"");
-                    return new Result(Integer.parseInt(matcherId.group(1)), true); //TODO should this really be a perfect match?
+                    System.out.println("Lavenshtein Distance < 3 for \"" + name + "\" and \"" + matcher.group(2) + "\"");
+                    return new Result(id, true); //TODO should this really be a perfect match?
                 }
             }
 
             if(!STRICT) {
                 //If strict only accept perfectly matching results.
                 if(idFirst == -1) {
-                    idFirst = Integer.parseInt(matcherId.group(1));
-                    nameFirst = matcherId.group(2);
+                    idFirst = Integer.parseInt(matcher.group(1));
+                    nameFirst = matcher.group(2);
                 }
             }
         }
@@ -337,19 +347,33 @@ public class Main {
         Pattern searchPattern = Pattern.compile(regex);
         Matcher matcher = searchPattern.matcher(contents);
 
+
+
         while(matcher.find()) {
-            if(matcher.group(2).equals(name) || matcher.group(4).contains(name) || matcher.group(3).equals(name)) {
-                return new Result(Integer.parseInt(matcher.group(1)), true);
+            int id = Integer.parseInt(matcher.group(1));
+            String title = matcher.group(2).toLowerCase();
+            String english = matcher.group(3).toLowerCase();
+            String synonyms = matcher.group(4).toLowerCase();
+
+            if(IGNORE_CASE) {
+                title = title.toLowerCase();
+                english = english.toLowerCase();
+                synonyms = synonyms.toLowerCase();
+                name = name.toLowerCase();
+            }
+
+            if(title.equals(name) || synonyms.contains(name) || english.equals(name)) {
+                return new Result(id, true);
             } else {
                 List<String> names = new ArrayList<String>();
-                names.addAll(Arrays.asList((matcher.group(4).split(";"))));
-                names.add(matcher.group(2));
-                names.add(matcher.group(3));
+                names.addAll(Arrays.asList((synonyms.split(";"))));
+                names.add(title);
+                names.add(english);
                 for(String s : names) {
                     int distance = StringUtils.getLevenshteinDistance(name, s);
                     if(distance < 3) {
                         System.out.println("Lavenshtein Distance < 3 for \"" + name + "\" and \"" + s + "\"");
-                        return new Result(Integer.parseInt(matcher.group(1)), true);
+                        return new Result(id, true);
                     }
                 }
             }
