@@ -48,7 +48,7 @@ public class Entry {
         to_return += "(RATING: " + rating + ") ";
         to_return += "(EPS: " + episodes + ") ";
         if(id != -1) {
-            to_return += "(URL: " + "https://myanimelist.net/anime/" + id + "/";
+            to_return += "(URL: " + "https://myanimelist.net/anime/" + id + "/)";
         }
 
         return to_return;

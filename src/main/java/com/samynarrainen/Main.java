@@ -23,6 +23,8 @@ public class Main {
 
     public static final boolean STRICT = true;
     public static final boolean IGNORE_CASE = true;
+    //Inclusive
+    public static final int LAVEN_DIST = 2;
 
     public static void main(String[] args) throws Exception {
         int pages = 1;
@@ -274,6 +276,9 @@ public class Main {
             name = name.toLowerCase();
         }
 
+        int shortestDistance = -1;
+        int shorestDistanceId = -1;
+
         //Look through the entries for one that matches the given name perfectly.
         //Else use the first result.
         while(matcher.find()) {
@@ -285,22 +290,25 @@ public class Main {
             }
 
             if(name.equals(title)) {
-                return new Result(Integer.parseInt(matcher.group(1)), true);
+                return new Result(id, true);
             } else {
                 int distance = StringUtils.getLevenshteinDistance(name, title);
-                if(distance < 3) {
-                    System.out.println("Lavenshtein Distance < 3 for \"" + name + "\" and \"" + matcher.group(2) + "\"");
-                    return new Result(id, true); //TODO should this really be a perfect match?
+                if(distance < LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
+                    shorestDistanceId = id;
                 }
             }
 
             if(!STRICT) {
                 //If strict only accept perfectly matching results.
                 if(idFirst == -1) {
-                    idFirst = Integer.parseInt(matcher.group(1));
-                    nameFirst = matcher.group(2);
+                    idFirst = id;
+                    nameFirst = title;
                 }
             }
+        }
+
+        if(shorestDistanceId != -1) {
+            return new Result(shorestDistanceId, false); //TODO short shorrest laven distance be higher priority than first result?
         }
 
         if(idFirst != -1) {
@@ -347,7 +355,8 @@ public class Main {
         Pattern searchPattern = Pattern.compile(regex);
         Matcher matcher = searchPattern.matcher(contents);
 
-
+        int shortestDistance = -1;
+        int shorestDistanceId = -1;
 
         while(matcher.find()) {
             int id = Integer.parseInt(matcher.group(1));
@@ -369,15 +378,23 @@ public class Main {
                 names.addAll(Arrays.asList((synonyms.split(";"))));
                 names.add(title);
                 names.add(english);
+
                 for(String s : names) {
                     int distance = StringUtils.getLevenshteinDistance(name, s);
-                    if(distance < 3) {
-                        System.out.println("Lavenshtein Distance < 3 for \"" + name + "\" and \"" + s + "\"");
-                        return new Result(id, true);
+                    if(distance < LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
+                        shortestDistance = distance;
+                        shorestDistanceId = id;
                     }
                 }
+
             }
         }
+
+        //Couldn't find a perfect match... Was there a close one?
+        if(shorestDistanceId != -1) {
+            return new Result(shorestDistanceId, false);
+        }
+
         System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
         return new Result();
     }
