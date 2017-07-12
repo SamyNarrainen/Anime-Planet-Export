@@ -10,6 +10,7 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -49,12 +50,18 @@ public class Main {
             entries.addAll(getEntries(pageContents));
         }
 
+        ExecutorService executor = Executors.newFixedThreadPool(5);
+
+
         for(Entry e : entries) {
-            try {
-                processEntry(e, entries, authentication);
-            } catch(SocketTimeoutException ex) {
-                System.out.println("Timed out connecting using \"" + e.name + "\"");
-            }
+            Handler h = new Handler(e, entries, authentication);
+            executor.execute(h);
+        }
+        executor.shutdown();
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         for(Entry e : problems) {
@@ -165,6 +172,11 @@ public class Main {
         String inputLine, contents = "";
         while ((inputLine = in.readLine()) != null) {
             contents += inputLine;
+
+            if(inputLine.contains("<h2 id=\"characters\">Characters</h2>")) {
+                System.out.println("Info: Reached end of anime page.");
+                break;
+            }
         }
 
         in.close();
@@ -336,8 +348,6 @@ public class Main {
         HttpURLConnection httpURLConnection = (HttpURLConnection)  url.openConnection();
         httpURLConnection.addRequestProperty("User-Agent", "Chrome");
         httpURLConnection.setRequestProperty("Authorization", basicAuth);
-        httpURLConnection.setConnectTimeout(1000);
-        httpURLConnection.setReadTimeout(1000);
         BufferedReader in = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
 
         //Load contents of site into single string.
