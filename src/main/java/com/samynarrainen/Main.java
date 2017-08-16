@@ -59,6 +59,15 @@ public class Main {
         //Authentication for MAL API
         final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
 
+/*
+        Entry entry = new Entry();
+        entry.name = "Angel Beats! Another Epilogue";
+        Main.processEntry(entry, entries, authentication);
+        if(true) {
+            return;
+        }
+*/
+
         String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=1"));
         //Look for more pages...
         String regexPages = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
@@ -111,10 +120,12 @@ public class Main {
                     e.perfectMatch = result.perfectMatch;
                     if(VERBOS) System.out.println("Found Match for \"" + e.name + "\" on attempt " + i + 2);
                     break;
-                } else {
-                    problems.add(e);
-                    if(VERBOS) System.out.println("Couldn't find match for \"" + e.name + "\" on attempt " + i + 2);
                 }
+            }
+            //Looked through the alternative titles, but still couldn't find a match.
+            if(result.id == -1) {
+                problems.add(e);
+                if(VERBOS) System.out.println("Couldn't find match for \"" + e.name);
             }
         } else {
             e.id = result.id;
@@ -307,25 +318,25 @@ public class Main {
 
         //Group 1: ID
         //Group 2: Title
-        String regexId = "myanimelist.net/anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<.*?picSurround di-tc thumb\">";
-        Pattern patternId = Pattern.compile(regexId);
+        //String regexId = "myanimelist.net/anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<.*?picSurround di-tc thumb\">";
+        String regexId = "anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
+        Matcher matcherId = Pattern.compile(regexId).matcher(contents);
 
-        Matcher matcher = patternId.matcher(contents);
-        int idFirst = -1; //The first ID found, not necessarily the best though.
-        String nameFirst = "";
+        int firstIdFound = -1; //The first ID found, not necessarily the best though.
+        String firstNameFound = "";
 
         if(IGNORE_CASE) {
             name = name.toLowerCase();
         }
 
         int shortestDistance = -1;
-        int shorestDistanceId = -1;
+        int shortestDistanceId = -1;
 
         //Look through the entries for one that matches the given name perfectly.
         //Else use the first result.
-        while(matcher.find()) {
-            int id = Integer.parseInt(matcher.group(1));
-            String title = matcher.group(2);
+        while(matcherId.find()) {
+            int id = Integer.parseInt(matcherId.group(1));
+            String title = matcherId.group(2);
 
             if(IGNORE_CASE) {
                 title = title.toLowerCase();
@@ -336,28 +347,33 @@ public class Main {
             } else {
                 int distance = StringUtils.getLevenshteinDistance(name, title);
                 if(distance < LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
-                    shorestDistanceId = id;
+                    if(VERBOS) System.out.println("Distance change for " + name + " with " + title + " for distance " + distance);
+                    shortestDistance = distance;
+                    shortestDistanceId = id;
                 }
             }
 
             if(!STRICT) {
                 //If strict only accept perfectly matching results.
-                if(idFirst == -1) {
-                    idFirst = id;
-                    nameFirst = title;
+                //Otherwise, accept the next found result.
+                if(firstIdFound == -1) {
+                    firstIdFound = id;
+                    firstNameFound = title;
                 }
             }
         }
 
-        if(shorestDistanceId != -1) {
-            return new Result(shorestDistanceId, false); //TODO short shorrest laven distance be higher priority than first result?
+        if(shortestDistanceId != -1) {
+            System.out.println("Warning: matched " + name + " to " + shortestDistanceId + " with laven dist of " + shortestDistance);
+            return new Result(shortestDistanceId, false); //TODO short shorrest laven distance be higher priority than first result?
         }
 
-        if(idFirst != -1) {
-            if(!name.equals(nameFirst)) {
-                if(VERBOS) System.out.println("Warning: \"" + name + "\" matched with \"" + nameFirst + "\"");
+        //Will only trigger if !STRICT
+        if(firstIdFound != -1) {
+            if(!name.equals(firstNameFound)) {
+                if(VERBOS) System.out.println("Warning: \"" + name + "\" matched with \"" + firstNameFound + "\"");
             }
-            return new Result(idFirst, false);
+            return new Result(firstIdFound, false);
         }
 
         return new Result(-1, false);
