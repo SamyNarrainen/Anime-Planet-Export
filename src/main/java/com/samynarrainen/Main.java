@@ -16,51 +16,67 @@ import java.util.regex.Pattern;
 
 public class Main {
 
-    public static final String WATCHED = "1", WATCHING = "2", DROPPED = "3", WANT_TO_WATCH = "4", STALLED = "5", NONE = "-1";
+    /**
+     * IDs used by AP for status.
+     */
+    public static final String NONE = "-1", WATCHED = "1", WATCHING = "2", DROPPED = "3", WANT_TO_WATCH = "4", STALLED = "5";
 
-    //TODO split entries across status to improve performance.
+    /**
+     * Collection of anime entries that were scraped from the AP account.
+     */
+    //TODO split entries across status to improve performance?
     public static final List<Entry> entries = new ArrayList<Entry>();
+
+    /**
+     * Anime entries that encountered problems in the conversion process. E.g couldn't be found on MAL.
+     */
     public static final List<Entry> problems = new ArrayList<Entry>();
 
+    /**
+     * Affects the strategy used to match a AP entry to MAL, true is safer.
+     */
     public static final boolean STRICT = true;
+
+    /**
+     * Dictates whether case is considered when comparing names of anime entries.
+     */
     public static final boolean IGNORE_CASE = true;
-    //Inclusive
+
+    /**
+     * The maximum exclusive Levenshtein Distance that is considered when comparing names.
+     */
     public static final int LAVEN_DIST = 2;
+
+    /**
+     * To prevent the execution of code only necessary during testing/development.
+     */
+    public static final boolean VERBOS = false;
 
     public static void main(String[] args) throws Exception {
         int pages = 1;
-        final String USER_AP = args[0];
-        final String authentication = DatatypeConverter.printBase64Binary((args[1] + ':' + args[2]).getBytes());
+        final String USERNAME_AP = args[0];
+        final String USERNAME_MAL = args[1];
+        //Authentication for MAL API
+        final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
 
-/*
-        MyAnimeListManager.deleteAnime(authentication, args[1]);
-        //TESTING
-        if(true) {
-            return;
-        }
-        */
-
-        String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USER_AP + "/anime?sort=title&page=1"));
-
+        String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=1"));
         //Look for more pages...
-        String regexPage = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
-        Pattern patternPage = Pattern.compile(regexPage);
-        Matcher matcherPage = patternPage.matcher(contents);
-        if(matcherPage.find()) {
-            pages = Integer.parseInt(matcherPage.group(2)) + 1; //TODO the page count given is 1 less, so add 1. Find out why.
+        String regexPages = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
+        Pattern patternPages = Pattern.compile(regexPages);
+        Matcher matcherPages = patternPages.matcher(contents);
+        if(matcherPages.find()) {
+            pages = Integer.parseInt(matcherPages.group(2)) + 1; //TODO the page count given is 1 less, so add 1. Find out why.
         }
 
         entries.addAll(getEntries(contents));
 
         //Already searched page 1, so start on 2.
         for(int i = 2; i < pages; i++) {
-            String pageContents = getPageContents(new URL("http://www.anime-planet.com/users/" + USER_AP + "/anime?sort=title&page=" + i));
+            String pageContents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=" + i));
             entries.addAll(getEntries(pageContents));
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(5);
-
-
         for(Entry e : entries) {
             Handler h = new Handler(e, entries, authentication);
             executor.execute(h);
@@ -87,26 +103,26 @@ public class Main {
         Result result = searchForId(e.name, entries, authentication);
 
         if(result.id == -1) {
-            System.out.println("Couldn't find match for \"" + e.name + "\" on first attempt.");
+            if(VERBOS) System.out.println("Couldn't find match for \"" + e.name + "\" on first attempt.");
             for(int i = 0; i < e.altTitles.size(); i++) {
                 result = searchForId(e.altTitles.get(i), entries, authentication);
                 if(result.id != -1) {
                     e.id = result.id;
                     e.perfectMatch = result.perfectMatch;
-                    System.out.println("Found Match for \"" + e.name + "\" on attempt " + i + 2);
+                    if(VERBOS) System.out.println("Found Match for \"" + e.name + "\" on attempt " + i + 2);
                     break;
                 } else {
                     problems.add(e);
-                    System.out.println("Couldn't find match for \"" + e.name + "\" on attempt " + i + 2);
+                    if(VERBOS) System.out.println("Couldn't find match for \"" + e.name + "\" on attempt " + i + 2);
                 }
             }
         } else {
             e.id = result.id;
             e.perfectMatch = result.perfectMatch;
-            System.out.println("Found Match for \"" + e.name + "\" first try");
+            if(VERBOS) System.out.println("Found Match for \"" + e.name + "\" first try");
         }
 
-        System.out.println(e + "\n");
+        System.out.println((e.id == -1 ? "COULDN'T FIND: " : "FOUND: ") + e);
     }
 
     public static Result searchForId(String name, List<Entry> entries, String authentication) throws Exception {
@@ -114,17 +130,17 @@ public class Main {
         if(result.id != -1) {
             for(Entry e : entries) {
                 if (e.id == result.id) {
-                    System.out.println("Warning: conflict with \"" + name + "\" with \"" + e.name + "\" trying search API...");
+                    if(VERBOS) System.out.println("Warning: conflict with \"" + name + "\" with \"" + e.name + "\" trying search API...");
                     //The id from website search produced a conflict ID, attempt the search API.
                     result = getMALIDAPI(name, authentication);
 
                     //No match with the search API.
                     if (result.id == -1) {
-                        //Remove e as there could also be a problem with this entry?
+                        //TODO Remove e as there could also be a problem with this entry?
                         if (!e.perfectMatch) {
                             e.id = -1;
                             problems.add(e);
-                            System.out.println("Error: \"" + name + "\" involved in a search conflict with \"" + e.name + "\"");
+                            if(VERBOS) System.out.println("Error: \"" + name + "\" involved in a search conflict with \"" + e.name + "\"");
                         }
                         return result;
                     } else {
@@ -134,7 +150,7 @@ public class Main {
                                 if (!e2.perfectMatch) {
                                     e2.id = -1;
                                     problems.add(e2);
-                                    System.out.println("Error: \"" + e2.name + "\" involved in a API search conflict with \"" + name + "\"");
+                                    if(VERBOS) System.out.println("Error: \"" + e2.name + "\" involved in a API search conflict with \"" + name + "\"");
                                 }
                                 result.id = -1;
                                 break;
@@ -144,7 +160,7 @@ public class Main {
                 }
             }
         } else {
-            System.out.println("No search result for \"" + name + "\", trying API search...");
+            if(VERBOS) System.out.println("No search result for \"" + name + "\", trying API search...");
             result = getMALIDAPI(name, authentication);
             if(result.id != -1) {
                 for(Entry e2 : entries) {
@@ -152,7 +168,7 @@ public class Main {
                         if(!e2.perfectMatch) {
                             e2.id = -1;
                             problems.add(e2);
-                            System.out.println("Error: \"" + e2.name + "\" involved in a API search conflict with \"" + name + "\"");
+                            if(VERBOS) System.out.println("Error: \"" + e2.name + "\" involved in a API search conflict with \"" + name + "\"");
                         }
                         result.id = -1;
                         break;
@@ -181,8 +197,8 @@ public class Main {
         while ((inputLine = in.readLine()) != null) {
             contents += inputLine;
 
+            //Only read what's necessary...
             if(inputLine.contains("<h2 id=\"characters\">Characters</h2>")) {
-                System.out.println("Info: Reached end of anime page.");
                 break;
             }
         }
@@ -291,10 +307,7 @@ public class Main {
 
         //Group 1: ID
         //Group 2: Title
-        //String regexId = "href=\"https://myanimelist.net/anime/(\\d*?)/.*?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
         String regexId = "myanimelist.net/anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<.*?picSurround di-tc thumb\">";
-        //String regexId = "myanimelist.net/anime/(\\d*)/\\w*?\"\\sclass=\"hoverinfo_trigger\"*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
-        //String regexId = "<h2 id=\"anime\">Anime</h2>.*?href=\"https://myanimelist.net/anime/(.*?)/";
         Pattern patternId = Pattern.compile(regexId);
 
         Matcher matcher = patternId.matcher(contents);
@@ -342,7 +355,7 @@ public class Main {
 
         if(idFirst != -1) {
             if(!name.equals(nameFirst)) {
-                System.out.println("Warning: \"" + name + "\" matched with \"" + nameFirst + "\"");
+                if(VERBOS) System.out.println("Warning: \"" + name + "\" matched with \"" + nameFirst + "\"");
             }
             return new Result(idFirst, false);
         }
@@ -383,7 +396,7 @@ public class Main {
         Matcher matcher = searchPattern.matcher(contents);
 
         int shortestDistance = -1;
-        int shorestDistanceId = -1;
+        int shortestDistanceId = -1;
 
         while(matcher.find()) {
             int id = Integer.parseInt(matcher.group(1));
@@ -410,7 +423,7 @@ public class Main {
                     int distance = StringUtils.getLevenshteinDistance(name, s);
                     if(distance < LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
                         shortestDistance = distance;
-                        shorestDistanceId = id;
+                        shortestDistanceId = id;
                     }
                 }
 
@@ -418,11 +431,11 @@ public class Main {
         }
 
         //Couldn't find a perfect match... Was there a close one?
-        if(shorestDistanceId != -1) {
-            return new Result(shorestDistanceId, false);
+        if(shortestDistanceId != -1) {
+            return new Result(shortestDistanceId, false);
         }
 
-        System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
+        if(VERBOS) System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
         return new Result();
     }
 }
