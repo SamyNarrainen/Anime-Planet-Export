@@ -50,12 +50,6 @@ public class Main {
             pages = Integer.parseInt(matcherPage.group(2)) + 1; //TODO the page count given is 1 less, so add 1. Find out why.
         }
 
-        System.out.println(pages);
-        System.out.println(contents);
-
-        if(true) {
-            return;
-        }
         entries.addAll(getEntries(contents));
 
         //Already searched page 1, so start on 2.
@@ -223,11 +217,11 @@ public class Main {
         Pattern patternStatus = Pattern.compile(regexStatus);
 
         //GROUP 1: Rating
-        String regexRating = "statusArea.*?Rating'>(.*?)<";
+        String regexRating = "statusArea.*?Rating\">(.*?)<";
         Pattern patternRating = Pattern.compile(regexRating);
 
         //GROUP 1: Episodes
-        String regexEpisodes = "statusArea\"><span class='status[2|3|5]'></span>(.*?)eps";
+        String regexEpisodes = "statusArea\"><span class=\"status[2|3|5]\"></span>(.*?)eps";
         Pattern patternEpisodes = Pattern.compile(regexEpisodes);
 
         //For a watched series, the episodes aren't shown where they usually are, so grab them from the anime information section.
