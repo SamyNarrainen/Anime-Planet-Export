@@ -224,6 +224,10 @@ public class Main {
         String regexEpisodes = "statusArea\"><span class=\"status[2|3|5]\"></span>(.*?)eps";
         Pattern patternEpisodes = Pattern.compile(regexEpisodes);
 
+        //GROUP 1: URL
+        String regexURL = "href=\"/anime/(.*?)\"";
+        Pattern patternURL = Pattern.compile(regexURL);
+
         //For a watched series, the episodes aren't shown where they usually are, so grab them from the anime information section.
         //GROUP 1: Episodes
         String regexEpisodesWatched = "(\\d*?)\\sep.*?\\)";
@@ -238,6 +242,11 @@ public class Main {
                 Entry entry = new Entry();
                 entry.name = matcher.group(1);
                 entry.status = matcherStatus.group(1);
+
+                Matcher matcherURL = patternURL.matcher(matcher.group(0));
+                if(matcherURL.find()) {
+                    entry.AnimePlanetURL = matcherURL.group(1);
+                }
 
                 Matcher matcherAltTitle = patternAltTitle.matcher(matcher.group(0));
                 if(matcherAltTitle.find()) {

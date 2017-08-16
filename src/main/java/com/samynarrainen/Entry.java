@@ -22,6 +22,8 @@ public class Entry {
      */
     public int episodes = -1;
 
+    public String AnimePlanetURL = "";
+
 
     public static int convertRating(String rating) {
         return (int) Float.parseFloat(rating) * 2;
@@ -43,6 +45,9 @@ public class Entry {
         String to_return = "";
 
         to_return += "(NAME: " + name + ") ";
+        if(!AnimePlanetURL.equals("")) {
+            to_return += "(AP URL: http://www.anime-planet.com/anime/" +  AnimePlanetURL + ") "; //TODO need to change anime to manga if we add manga.
+        }
         to_return += "(ID: " + id + ") ";
         to_return += "(STATUS: " + statusLiteral(status) + ") ";
         to_return += "(RATING: " + rating + ") ";
