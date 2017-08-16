@@ -32,6 +32,14 @@ public class Main {
         final String USER_AP = args[0];
         final String authentication = DatatypeConverter.printBase64Binary((args[1] + ':' + args[2]).getBytes());
 
+/*
+        MyAnimeListManager.deleteAnime(authentication, args[1]);
+        //TESTING
+        if(true) {
+            return;
+        }
+        */
+
         String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USER_AP + "/anime?sort=title&page=1"));
 
         //Look for more pages...
