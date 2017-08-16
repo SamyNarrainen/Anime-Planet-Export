@@ -43,13 +43,19 @@ public class Main {
         String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USER_AP + "/anime?sort=title&page=1"));
 
         //Look for more pages...
-        String regexPage = "'pagination aligncenter'.*(page=(.)).*class='next'>";
+        String regexPage = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
         Pattern patternPage = Pattern.compile(regexPage);
         Matcher matcherPage = patternPage.matcher(contents);
         if(matcherPage.find()) {
             pages = Integer.parseInt(matcherPage.group(2)) + 1; //TODO the page count given is 1 less, so add 1. Find out why.
         }
 
+        System.out.println(pages);
+        System.out.println(contents);
+
+        if(true) {
+            return;
+        }
         entries.addAll(getEntries(contents));
 
         //Already searched page 1, so start on 2.
