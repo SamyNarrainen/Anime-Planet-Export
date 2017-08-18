@@ -33,11 +33,6 @@ public class Main {
     public static final List<Entry> problems = new ArrayList<Entry>();
 
     /**
-     * Affects the strategy used to match a AP entry to MAL, true is safer.
-     */
-    public static final boolean STRICT = true;
-
-    /**
      * Whether case is considered when comparing names of anime entries.
      */
     public static final boolean IGNORE_CASE = true;
@@ -318,9 +313,6 @@ public class Main {
         String regexId = "anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
         Matcher matcherId = Pattern.compile(regexId).matcher(contents);
 
-        int firstIdFound = -1; //The first ID found, not necessarily the best though.
-        String firstNameFound = "";
-
         if(IGNORE_CASE) {
             name = name.toLowerCase();
         }
@@ -346,28 +338,11 @@ public class Main {
                     shortestDistanceId = id;
                 }
             }
-
-            if(!STRICT) {
-                //If strict only accept perfectly matching results.
-                //Otherwise, accept the next found result.
-                if(firstIdFound == -1) {
-                    firstIdFound = id;
-                    firstNameFound = title;
-                }
-            }
         }
 
         if(shortestDistanceId != -1) {
             System.out.println("Warning: matched " + name + " to " + shortestDistanceId + " with laven dist of " + shortestDistance);
             return new Result(shortestDistanceId, false); //TODO short shorrest laven distance be higher priority than first result?
-        }
-
-        //Will only trigger if !STRICT
-        if(firstIdFound != -1) {
-            if(!name.equals(firstNameFound)) {
-                if(VERBOS) System.out.println("Warning: \"" + name + "\" matched with \"" + firstNameFound + "\"");
-            }
-            return new Result(firstIdFound, false);
         }
 
         return new Result(-1, false);
