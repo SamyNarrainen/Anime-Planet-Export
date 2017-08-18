@@ -71,12 +71,6 @@ public class Main {
             entries.addAll(getEntries(pageContents));
         }
 
-        //TESTING
-        List<FeedResult> feed = AnimePlanetManager.exportFeed(USERNAME_AP);
-        AnimePlanetManager.calculateDates(feed, entries);
-        if(true) return;
-        //TESTING END
-
         ExecutorService executor = Executors.newFixedThreadPool(5);
         for(Entry e : entries) {
             Handler h = new Handler(e, entries, authentication);
@@ -253,6 +247,11 @@ public class Main {
         String regexEpisodesWatched = "(\\d*?)\\sep.*?\\)";
         Pattern patternEpisodesWatched = Pattern.compile(regexEpisodesWatched);
 
+        //The number of times the series has been rewatched.
+        //GROUP 1: Watch Count
+        String regexWatchedCount = "Watched.*?(\\d.*?)x";
+        Pattern patternWatchedCount = Pattern.compile(regexWatchedCount);
+
         List<Entry> entries = new ArrayList<Entry>();
 
         while(matcher.find()) {
@@ -290,6 +289,11 @@ public class Main {
                         Matcher matcherEpisodesWatched = patternEpisodesWatched.matcher(matcher.group(0));
                         if(matcherEpisodesWatched.find()) {
                             entry.episodes = Integer.parseInt(matcherEpisodesWatched.group(1).replace(" ", ""));
+                        }
+
+                        Matcher matcherWatchedCount = patternWatchedCount.matcher(matcher.group(0));
+                        if(matcherWatchedCount.find()) {
+                            entry.watchCount = Integer.parseInt(matcherWatchedCount.group(1));
                         }
                     } else {
                         Matcher matcherEpisodes = patternEpisodes.matcher(matcher.group(0));

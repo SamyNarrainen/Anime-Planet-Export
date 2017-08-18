@@ -18,6 +18,7 @@ public class AnimePlanetManager {
 
     /**
      * Exports the personal feed of an anime-planet account into a list of Strings.
+     * TODO currently doesn't distinguish between anime and AP achievements.
      * @param username
      * @return
      */

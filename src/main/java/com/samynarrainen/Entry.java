@@ -32,6 +32,11 @@ public class Entry {
     public Date start, end;
 
     /**
+     * The number of times the series has been watched.
+     */
+    public int watchCount = -1;
+
+    /**
      * Date format used by MAL.
      */
     private final SimpleDateFormat MAL_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
@@ -72,6 +77,9 @@ public class Entry {
             to_return += "(START: " + start + ") ";
             to_return += "(END: " + end + ") ";
         }
+        if(status.equals(Main.WATCHED)) {
+            to_return += "(WATCH_COUNT: " + watchCount + ") ";
+        }
 
         return to_return;
     }
@@ -87,7 +95,7 @@ public class Entry {
     }
 
     public String toXML() {
-        if(id == -1) {
+        if (id == -1) {
             return "";
         }
 
@@ -96,24 +104,29 @@ public class Entry {
         sb.append("<series_animedb_id>" + id + "</series_animedb_id>");
 
 
-        if(episodes >= 0) {
+        if (episodes >= 0) {
             sb.append("<my_watched_episodes>" + episodes + "</my_watched_episodes>");
         }
 
         sb.append("<my_status>" + statusLiteral(status) + "</my_status>");
 
 
-        if(rating >= 0) {
+        if (rating >= 0) {
             sb.append("<my_score>" + rating + "</my_score>");
         }
 
-        if(start != null) {
+        if (start != null) {
             sb.append("<my_start_date>" + MAL_DATE_FORMAT.format(start) + "</my_start_date>");
         }
 
-        //'finish date' only makes sense if the show is finished.
-        if(end != null && status == Main.WATCHED) {
-            sb.append("<my_finish_date>" + MAL_DATE_FORMAT.format(end) + "</my_finish_date>");
+        if (status.equals(Main.WATCHED)) {
+            //'finish date' only makes sense if the show is finished.
+            if (end != null) {
+                sb.append("<my_finish_date>" + MAL_DATE_FORMAT.format(end) + "</my_finish_date>");
+            }
+
+            //Accounting for number of times re-watched, so -1 for for the initial viewing.
+            sb.append("<my_rewatching>" + (watchCount - 1) +"</my_rewatching>");
         }
 
         sb.append("<update_on_import>1</update_on_import></anime>");
