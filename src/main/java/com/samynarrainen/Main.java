@@ -38,7 +38,7 @@ public class Main {
     public static final boolean STRICT = true;
 
     /**
-     * Dictates whether case is considered when comparing names of anime entries.
+     * Whether case is considered when comparing names of anime entries.
      */
     public static final boolean IGNORE_CASE = true;
 
@@ -59,20 +59,10 @@ public class Main {
         //Authentication for MAL API
         final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
 
-/*
-        Entry entry = new Entry();
-        entry.name = "Angel Beats! Another Epilogue";
-        Main.processEntry(entry, entries, authentication);
-        if(true) {
-            return;
-        }
-*/
-
         String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=1"));
         //Look for more pages...
         String regexPages = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
-        Pattern patternPages = Pattern.compile(regexPages);
-        Matcher matcherPages = patternPages.matcher(contents);
+        Matcher matcherPages = Pattern.compile(regexPages).matcher(contents);
         if(matcherPages.find()) {
             pages = Integer.parseInt(matcherPages.group(2)) + 1; //TODO the page count given is 1 less, so add 1. Find out why.
         }
@@ -313,12 +303,18 @@ public class Main {
         return entries;
     }
 
+    /**
+     * Compares the search results from the MAL website to find a matching name.
+     * @param name
+     * @return
+     * @throws IOException
+     * @throws URISyntaxException
+     */
     public static Result getMALID(String name) throws IOException, URISyntaxException {
         String contents = getPageContents(new URL("https://myanimelist.net/search/all?q=" + name.replace(" ", "%20")));
 
         //Group 1: ID
         //Group 2: Title
-        //String regexId = "myanimelist.net/anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<.*?picSurround di-tc thumb\">";
         String regexId = "anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
         Matcher matcherId = Pattern.compile(regexId).matcher(contents);
 
@@ -332,8 +328,6 @@ public class Main {
         int shortestDistance = -1;
         int shortestDistanceId = -1;
 
-        //Look through the entries for one that matches the given name perfectly.
-        //Else use the first result.
         while(matcherId.find()) {
             int id = Integer.parseInt(matcherId.group(1));
             String title = matcherId.group(2);
@@ -390,7 +384,6 @@ public class Main {
     public static Result getMALIDAPI(String name, String authentication) throws IOException {
         URL url = new URL("https://myanimelist.net/api/anime/search.xml?q=" + name.replace(" ", "%20"));
         String basicAuth = "Basic " + authentication;
-
         HttpURLConnection httpURLConnection = (HttpURLConnection)  url.openConnection();
         httpURLConnection.addRequestProperty("User-Agent", "Chrome");
         httpURLConnection.setRequestProperty("Authorization", basicAuth);
@@ -416,15 +409,15 @@ public class Main {
 
         while(matcher.find()) {
             int id = Integer.parseInt(matcher.group(1));
-            String title = matcher.group(2).toLowerCase();
-            String english = matcher.group(3).toLowerCase();
-            String synonyms = matcher.group(4).toLowerCase();
+            String title = matcher.group(2);
+            String english = matcher.group(3);
+            String synonyms = matcher.group(4);
 
             if(IGNORE_CASE) {
+                name = name.toLowerCase();
                 title = title.toLowerCase();
                 english = english.toLowerCase();
                 synonyms = synonyms.toLowerCase();
-                name = name.toLowerCase();
             }
 
             if(title.equals(name) || synonyms.contains(name) || english.equals(name)) {
@@ -443,12 +436,11 @@ public class Main {
                     }
                 }
 
+                //Couldn't find a perfect match... Was there a close one?
+                if(shortestDistanceId != -1) {
+                    return new Result(shortestDistanceId, false);
+                }
             }
-        }
-
-        //Couldn't find a perfect match... Was there a close one?
-        if(shortestDistanceId != -1) {
-            return new Result(shortestDistanceId, false);
         }
 
         if(VERBOS) System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
