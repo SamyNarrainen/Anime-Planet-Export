@@ -1,6 +1,8 @@
 package com.samynarrainen;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -23,6 +25,17 @@ public class Entry {
     public int episodes = -1;
 
     public String AnimePlanetURL = "";
+
+    /**
+     * @note purposely kept null to prevent un assigned dates from being used.
+     */
+    public Date start, end;
+
+    /**
+     * Date format used by MAL.
+     */
+    private final SimpleDateFormat MAL_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
 
 
     public static int convertRating(String rating) {
@@ -55,21 +68,10 @@ public class Entry {
         if(id != -1) {
             to_return += "(URL: " + "https://myanimelist.net/anime/" + id + "/)";
         }
-
-        return to_return;
-    }
-
-    /**
-     * NAME,ID,STATUS,RATING,EPS
-     */
-    public String toCSV() {
-        String to_return = "";
-
-        to_return += name + ",";
-        to_return += id + ",";
-        to_return += statusLiteral(status) + ",";
-        to_return += rating + ",";
-        to_return += episodes + ",";
+        if(start != null && end != null) {
+            to_return += "(START: " + start + ") ";
+            to_return += "(END: " + end + ") ";
+        }
 
         return to_return;
     }
@@ -103,6 +105,15 @@ public class Entry {
 
         if(rating >= 0) {
             sb.append("<my_score>" + rating + "</my_score>");
+        }
+
+        if(start != null) {
+            sb.append("<my_start_date>" + MAL_DATE_FORMAT.format(start) + "</my_start_date>");
+        }
+
+        //'finish date' only makes sense if the show is finished.
+        if(end != null && status == Main.WATCHED) {
+            sb.append("<my_finish_date>" + MAL_DATE_FORMAT.format(end) + "</my_finish_date>");
         }
 
         sb.append("<update_on_import>1</update_on_import></anime>");

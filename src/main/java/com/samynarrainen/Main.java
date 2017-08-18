@@ -1,5 +1,6 @@
 package com.samynarrainen;
 
+import com.samynarrainen.Data.FeedResult;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.DatatypeConverter;
@@ -45,7 +46,7 @@ public class Main {
     /**
      * To prevent the execution of code only necessary during testing/development.
      */
-    public static final boolean VERBOS = false;
+    public static final boolean VERBOS = true;
 
     public static void main(String[] args) throws Exception {
         int pages = 1;
@@ -69,6 +70,12 @@ public class Main {
             String pageContents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=" + i));
             entries.addAll(getEntries(pageContents));
         }
+
+        //TESTING
+        List<FeedResult> feed = AnimePlanetManager.exportFeed(USERNAME_AP);
+        AnimePlanetManager.calculateDates(feed, entries);
+        if(true) return;
+        //TESTING END
 
         ExecutorService executor = Executors.newFixedThreadPool(5);
         for(Entry e : entries) {
@@ -172,6 +179,7 @@ public class Main {
                 }
             }
         }
+        //Otherwise requests are sent too quickly.
         Thread.sleep(500);
         return result;
     }
@@ -317,8 +325,7 @@ public class Main {
             name = name.toLowerCase();
         }
 
-        int shortestDistance = -1;
-        int shortestDistanceId = -1;
+        int shortestDistance = -1, shortestDistanceId = -1;
 
         while(matcherId.find()) {
             int id = Integer.parseInt(matcherId.group(1));
@@ -331,6 +338,7 @@ public class Main {
             if(name.equals(title)) {
                 return new Result(id, true);
             } else {
+                //TODO check the actual page, sometimes there are differences between the API and the page names, AKA JoJo S2.
                 int distance = StringUtils.getLevenshteinDistance(name, title);
                 if(distance < LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
                     if(VERBOS) System.out.println("Distance change for " + name + " with " + title + " for distance " + distance);
@@ -341,8 +349,8 @@ public class Main {
         }
 
         if(shortestDistanceId != -1) {
-            System.out.println("Warning: matched " + name + " to " + shortestDistanceId + " with laven dist of " + shortestDistance);
-            return new Result(shortestDistanceId, false); //TODO short shorrest laven distance be higher priority than first result?
+            if(VERBOS) System.out.println("Warning: matched " + name + " to " + shortestDistanceId + " with laven dist of " + shortestDistance);
+            return new Result(shortestDistanceId, false);
         }
 
         return new Result(-1, false);
