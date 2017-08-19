@@ -131,17 +131,7 @@ public class Entry {
 
         return to_return;
     }
-
-    @Override
-    public boolean equals(Object e) {
-        if(e instanceof Entry) {
-            return ((Entry) e).id == this.id;
-        } else if(e instanceof Integer) {
-            return ((Integer) e) == this.id;
-        }
-        return false;
-    }
-
+    
     public String toXML() {
         if (id == -1) {
             return "";
