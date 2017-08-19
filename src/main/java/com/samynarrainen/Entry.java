@@ -131,23 +131,20 @@ public class Entry {
 
         return to_return;
     }
-    
-    public String toXML() {
-        if (id == -1) {
-            return "";
-        }
 
+    /**
+     * Exports into the XML format used by MAL. Used for uploading the results to a MAL account.
+     */
+    public String toXML() {
         StringBuilder sb = new StringBuilder();
         sb.append("<anime>");
         sb.append("<series_animedb_id>" + id + "</series_animedb_id>");
-
+        sb.append("<my_status>" + status.literal + "</my_status>");
+        sb.append("<update_on_import>1</update_on_import>");
 
         if (episodes >= 0) {
             sb.append("<my_watched_episodes>" + episodes + "</my_watched_episodes>");
         }
-
-        sb.append("<my_status>" + status.literal + "</my_status>");
-
 
         if (rating >= 0) {
             sb.append("<my_score>" + rating + "</my_score>");
@@ -167,8 +164,7 @@ public class Entry {
             sb.append("<my_rewatching>" + (watchCount - 1) +"</my_rewatching>");
         }
 
-        sb.append("<update_on_import>1</update_on_import></anime>");
-
+        sb.append("</anime>");
         return sb.toString();
     }
 }
