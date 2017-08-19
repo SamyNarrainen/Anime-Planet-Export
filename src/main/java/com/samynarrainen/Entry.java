@@ -1,5 +1,6 @@
 package com.samynarrainen;
 
+import com.samynarrainen.Data.Status;
 import com.samynarrainen.Data.Type;
 
 import java.text.SimpleDateFormat;
@@ -25,7 +26,7 @@ public class Entry {
     /**
      * The status of this anime in the list. E.g watching.
      */
-    public String status = Main.NONE;
+    public Status status = Status.None;
 
     /**
      * The anime's corresponding MAL id.
@@ -106,18 +107,6 @@ public class Entry {
         return (int) Float.parseFloat(rating) * 2;
     }
 
-    public static String statusLiteral(String status) {
-        switch(status) {
-            case Main.WATCHED : return "Completed";
-            case Main.WATCHING : return "Watching";
-            case Main.WANT_TO_WATCH : return "Plan to Watch";
-            case Main.STALLED : return "On-Hold";
-            case Main.DROPPED : return "Dropped";
-        }
-        return ""; //Also for NONE
-    }
-
-
     public String toString() {
         String to_return = "";
 
@@ -126,7 +115,7 @@ public class Entry {
             to_return += "(AP URL: http://www.anime-planet.com/anime/" +  AnimePlanetURL + ") "; //TODO need to change anime to manga if we add manga.
         }
         to_return += "(ID: " + id + ") ";
-        to_return += "(STATUS: " + statusLiteral(status) + ") ";
+        to_return += "(STATUS: " + status.literal + ") ";
         to_return += "(RATING: " + rating + ") ";
         to_return += "(EPS: " + episodes + ") ";
         if(id != -1) {
@@ -136,7 +125,7 @@ public class Entry {
             to_return += "(START: " + start + ") ";
             to_return += "(END: " + end + ") ";
         }
-        if(status.equals(Main.WATCHED)) {
+        if(status.equals(Status.Watched)) {
             to_return += "(WATCH_COUNT: " + watchCount + ") ";
         }
 
@@ -167,7 +156,7 @@ public class Entry {
             sb.append("<my_watched_episodes>" + episodes + "</my_watched_episodes>");
         }
 
-        sb.append("<my_status>" + statusLiteral(status) + "</my_status>");
+        sb.append("<my_status>" + status.literal + "</my_status>");
 
 
         if (rating >= 0) {
@@ -178,7 +167,7 @@ public class Entry {
             sb.append("<my_start_date>" + MAL_DATE_FORMAT.format(start) + "</my_start_date>");
         }
 
-        if (status.equals(Main.WATCHED)) {
+        if (status.equals(Status.Watched)) {
             //'finish date' only makes sense if the show is finished.
             if (end != null) {
                 sb.append("<my_finish_date>" + MAL_DATE_FORMAT.format(end) + "</my_finish_date>");

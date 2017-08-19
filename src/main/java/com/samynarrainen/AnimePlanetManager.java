@@ -1,6 +1,7 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.FeedResult;
+import com.samynarrainen.Data.Status;
 import com.samynarrainen.Data.Type;
 
 import java.io.IOException;
@@ -160,7 +161,7 @@ public class AnimePlanetManager {
             }
 
 
-            if(entry.status.equals(Main.WATCHED)) {
+            if(entry.status.equals(Status.Watched)) {
                 entry.totalEpisodes = entry.episodes;
             } else if(entry.totalEpisodes == -1) {
                 if(entry.type.equals(Type.Movie)) {

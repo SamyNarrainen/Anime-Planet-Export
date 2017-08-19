@@ -1,7 +1,7 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.FeedResult;
-import com.samynarrainen.Data.Type;
+import com.samynarrainen.Data.Status;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.DatatypeConverter;
@@ -11,18 +11,12 @@ import java.io.InputStreamReader;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Main {
-
-    /**
-     * IDs used by AP for status.
-     */
-    public static final String NONE = "-1", WATCHED = "1", WATCHING = "2", DROPPED = "3", WANT_TO_WATCH = "4", STALLED = "5";
 
     /**
      * Collection of anime entries that were scraped from the AP account.
@@ -277,7 +271,7 @@ public class Main {
 
                 Entry entry = new Entry();
                 entry.name = matcher.group(1);
-                entry.status = matcherStatus.group(1);
+                entry.status = Status.get(matcherStatus.group(1));
 
                 Matcher matcherURL = patternURL.matcher(matcher.group(0));
                 if(matcherURL.find()) {
@@ -296,13 +290,13 @@ public class Main {
                     }
                 }
 
-                if(entry.status.equals(WATCHED) || entry.status.equals(STALLED) || entry.status.equals(DROPPED) || entry.status.equals(WATCHING)) {
+                if(entry.status.equals(Status.Watched) || entry.status.equals(Status.Stalled) || entry.status.equals(Status.Dropped) || entry.status.equals(Status.Watching)) {
                     Matcher matcherRating = patternRating.matcher(matcher.group(0));
                     if(matcherRating.find()) {
                         entry.rating = Entry.convertRating(matcherRating.group(1));
                     }
 
-                    if(entry.status.equals(WATCHED)) {
+                    if(entry.status.equals(Status.Watched)) {
                         Matcher matcherEpisodesWatched = patternEpisodesWatched.matcher(matcher.group(0));
                         if(matcherEpisodesWatched.find()) {
                             entry.episodes = Integer.parseInt(matcherEpisodesWatched.group(1).replace(" ", ""));
