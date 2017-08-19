@@ -8,7 +8,11 @@ public enum Type {
     Special("TV Special", "Special"),
     Movie("Movie", "Movie"),
     OVA("OVA", "OVA"),
-    DVD_Special("DVD Special", "Special");
+    DVD_Special("DVD Special", "Special"),
+    Web("Web", "ONA"),
+    Music("Music Video", "Music"),
+    Other("Other", "Special"), //TODO check out Steins;Gate 0 which is 'Other' on AP, but 'Unknown' on MAL.
+    None("", "");
 
     public final String AP, MAL;
 
@@ -16,5 +20,4 @@ public enum Type {
         AP = ap;
         MAL = mal;
     }
-
 }

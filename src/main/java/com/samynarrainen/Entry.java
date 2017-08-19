@@ -43,7 +43,7 @@ public class Entry {
     public int year = -1, yearEnd = -1;
     public String season = "";
     public int totalEpisodes = -1;
-    public Type type;
+    public Type type = Type.None;
 
     /**
      * Date format used by MAL.

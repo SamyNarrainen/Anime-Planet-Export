@@ -84,11 +84,13 @@ public class MyAnimeListManager {
         String contents = Main.getPageContents(new URL("https://myanimelist.net/anime/" + id));
         //System.out.println(contents);
 
-        //Group 1: Type
+        //Group 1: Type data
         //Group 2: Episodes
         //Group 3: Year data
         //Group 4: Studio
-        String regexInfo = "Information.*?\\?type=.*?\">(.*?)<.*?Episodes:</span>(.*?)<.*?Aired:</span>.*?,(.*?)<.*?Studios:.*?producer.*?title=\"(.*?)\"";
+        //TODO, not all types have links, e.g Music
+        //String regexInfo = "Information.*?\\?type=.*?\">(.*?)<.*?Episodes:</span>(.*?)<.*?Aired:</span>.*?,(.*?)<.*?Studios:.*?producer.*?title=\"(.*?)\"";
+        String regexInfo = "Information.*?Type:.*?>(.*?)<\\/div.*?Episodes:<\\/span>(.*?)<.*?Aired:<\\/span>.*?,(.*?)<.*?Studios:.*?producer.*?title=\"(.*?)\"";
         Matcher matcherInfo = Pattern.compile(regexInfo).matcher(contents);
 
         //Group 1: Season
@@ -98,8 +100,19 @@ public class MyAnimeListManager {
         //Group 1: Year
         String regexYear = "(\\d{4})";
 
+        //Group 1: Type
+        String regexTypeLinked = "type.*?>(.*?)<";
+
         if(matcherInfo.find()) {
-            String type = matcherInfo.group(1);
+            String type = "";
+            Matcher matcherTypeLinked = Pattern.compile(regexTypeLinked).matcher(matcherInfo.group(1));
+            if(matcherTypeLinked.find()) {
+                type = matcherTypeLinked.group(1);
+            } else {
+                //The type is specified by one which has no link, such as Music.
+                type = matcherInfo.group(1).trim();
+            }
+
             if(type.equals(Type.Movie.MAL)) {
                 entry.type = Type.Movie;
             } else if(type.equals(Type.OVA.MAL)) {
@@ -108,6 +121,12 @@ public class MyAnimeListManager {
                 entry.type = Type.Special;
             } else if(type.equals(Type.TV.MAL)) {
                 entry.type = Type.TV;
+            } else if(type.equals(Type.Web.MAL)) {
+                entry.type = Type.Web;
+            } else if(type.equals(Type.Music.MAL)) {
+                entry.type = Type.Music;
+            } else if(type.equals(Type.Other.MAL)) {
+                entry.type = Type.Other;
             }
 
             Matcher matcherYear = Pattern.compile(regexYear).matcher(matcherInfo.group(3));
@@ -122,7 +141,9 @@ public class MyAnimeListManager {
                 }
             }
 
-            entry.totalEpisodes = Integer.parseInt(matcherInfo.group(2).replace(" ", ""));
+            try {
+                entry.totalEpisodes = Integer.parseInt(matcherInfo.group(2).replace(" ", ""));
+            } catch(NumberFormatException e) {}
             //TODO MAL separates producers and studio, whilst AP doesn't.
             entry.studios.add(matcherInfo.group(4));
 

@@ -1,6 +1,7 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.FeedResult;
+import com.samynarrainen.Data.Type;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.xml.bind.DatatypeConverter;
@@ -55,7 +56,6 @@ public class Main {
         final String USERNAME_MAL = args[1];
         //Authentication for MAL API
         final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
-
 
         /*
         Entry entry = new Entry();
@@ -120,32 +120,24 @@ public class Main {
             e.printStackTrace();
         }
 
+        for(Entry e : problems) {
+            System.out.println("PROBLEM PRE: " + e);
+        }
 
         for(Entry e : problems) {
             int id = compareAdditionalInfo(e);
             if(id != -1) {
                 System.out.println("Solved problem for " + e.AnimePlanetURL + " matching to: " + id);
                 e.id = id;
-            } else {
+            }
+        }
+
+        //Group all actual problems together when printing... TODO or remove them from the array, bit more messsy though.
+        for(Entry e : problems) {
+            if(e.id == -1) {
                 System.out.println("PROBLEM: " + e);
             }
         }
-        /*
-        {
-            Iterator<Entry> iterator = problems.iterator();
-            while(iterator.hasNext()) {
-                Entry e = iterator.next();
-
-                //Attempt to solve these problems first.
-                int id = compareAdditionalInfo(e);
-                if(id != -1) {
-                    e.id = id;
-                    iterator.remove();
-                }
-            }
-
-        }
-*/
 
         List<FeedResult> feed = AnimePlanetManager.exportFeed(USERNAME_AP);
         AnimePlanetManager.calculateDates(feed, entries);
@@ -459,8 +451,13 @@ public class Main {
 
                 for(String studio : entry.studios) {
                     for(String malStudio : malEntry.studios) {
-                        if(malStudio.equals(studio)) {
+                        if(malStudio.compareToIgnoreCase(studio) == 0) {
                             return id;
+                        } else if(studio.compareToIgnoreCase("Studio Trigger") == 0) {
+                            //Studio Trigger is known as Trigger on MAL.
+                            if(malStudio.compareToIgnoreCase("Trigger") == 0) {
+                                return id;
+                            }
                         }
                     }
                 }
