@@ -12,37 +12,84 @@ import java.util.List;
  */
 public class Entry {
 
+    /**
+     * The entrie's main title.
+     */
     public String name = "";
+
+    /**
+     * Stored in a 0-10 rating system.
+     */
     public int rating = -1;
+
+    /**
+     * The status of this anime in the list. E.g watching.
+     */
     public String status = Main.NONE;
+
+    /**
+     * The anime's corresponding MAL id.
+     */
     public int id = -1;
+
+    /**
+     * Alternative titles of the anime.
+     */
     public List<String> altTitles = new ArrayList<String>();
-    //The ID of this Entry was found by matching it's name perfectly.
-    //Therefore little chance of mismatch.
+
+    /**
+     * The id was found by a perfect match. Thus little chance of mismatch.
+     */
     public boolean perfectMatch = false;
 
-    /*
-     * Relevant if DROPPED or STALLED, WATCHED assumes all episodes seen.
+    /**
+     * Number of episodes seen by the user.
+     * Relevant if DROPPED or STALLED, WATCHED where all episodes have been seen.
      */
     public int episodes = -1;
 
+    /**
+     * The AP equivalent of id, used as a unique identifier by AP.
+     */
     public String AnimePlanetURL = "";
 
     /**
-     * @note purposely kept null to prevent un assigned dates from being used.
+     * The start and end date that the user watched this anime from.
+     * The end date is not used if the anime has not been completely watched.
+     * Purposely kept null to prevent un-assigned dates from being used.
      */
     public Date start, end;
 
     /**
      * The number of times the series has been watched.
+     * 1 implies the show has been completed, 2 implies it has been completed and re-watched once.
      */
     public int watchCount = -1;
 
-
+    /**
+     * The studios that produced this show.
+     */
     public List<String> studios = new ArrayList<String>();
+
+    /**
+     * The publishing year and the year publishing ended, AKA the airing of the last episode.
+     */
     public int year = -1, yearEnd = -1;
+
+    /**
+     * The season this show belonged to, e.g Summer 2017.
+     */
     public String season = "";
+
+    /**
+     * The number of episodes available in this show.
+     * @see this.episodes
+     */
     public int totalEpisodes = -1;
+
+    /**
+     * The type of show, for example TV, Movie, Web...
+     */
     public Type type = Type.None;
 
     /**
@@ -50,9 +97,12 @@ public class Entry {
      */
     private final SimpleDateFormat MAL_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
-
-
+    /**
+     * Normalises a 0-5 float scale rating system to 0-10 integer which is used by MAL.
+     * @param rating a String representing a numerical value.
+     */
     public static int convertRating(String rating) {
+        //AP uses a 0-5 float rating system.
         return (int) Float.parseFloat(rating) * 2;
     }
 

@@ -452,11 +452,9 @@ public class Main {
         //GROUP 3: English
         //Group 4: Synonyms
         String regex = "<id>(\\d*?)</id>.*?<title>(.*?)</title>.*?<english>(.*?)</english>.*?<synonyms>(.*?)</synonyms>";
-        Pattern searchPattern = Pattern.compile(regex);
-        Matcher matcher = searchPattern.matcher(contents);
+        Matcher matcher = Pattern.compile(regex).matcher(contents);
 
-        int shortestDistance = -1;
-        int shortestDistanceId = -1;
+        int shortestDistance = -1, shortestDistanceId = -1;
 
         while(matcher.find()) {
             int id = Integer.parseInt(matcher.group(1));
@@ -480,12 +478,12 @@ public class Main {
                         shortestDistanceId = id;
                     }
                 }
-
-                //Couldn't find a perfect match... Was there a close one?
-                if(shortestDistanceId != -1) {
-                    return new Result(shortestDistanceId, false);
-                }
             }
+        }
+
+        //Couldn't find a perfect match... Was there a close one?
+        if(shortestDistanceId != -1) {
+            return new Result(shortestDistanceId, false);
         }
 
         if(VERBOS) System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
