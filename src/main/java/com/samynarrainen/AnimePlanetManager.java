@@ -112,8 +112,8 @@ public class AnimePlanetManager {
         Pattern patternInfo = Pattern.compile(regexInfo);
         Matcher matcherInfo = patternInfo.matcher(contents);
 
-        String regexSeason = "pure-g entryBar.*?seasons.*?>(.*?)<.*?section.*?";
-        Matcher matcherSeason = Pattern.compile(regexSeason).matcher(contents);
+        //Group 1: Season
+        String regexSeason = "seasons.*?>(.*?)<";
 
         //Group 1: Studio
         String regexStudio = "studios/.*?>(.*?)<";
@@ -193,6 +193,7 @@ public class AnimePlanetManager {
             }
 
 
+            Matcher matcherSeason = Pattern.compile(regexSeason).matcher(matcherInfo.group(0));
             if(matcherSeason.find()) {
                 entry.season = matcherSeason.group(1);
             }

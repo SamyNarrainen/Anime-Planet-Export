@@ -57,41 +57,6 @@ public class Main {
         //Authentication for MAL API
         final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
 
-        /*
-        Entry entry = new Entry();
-        entry.name = "Attack on Titan OVA";
-        entry.AnimePlanetURL = "attack-on-titan-ova";
-        //entry.name = "Kizumonogatari Part 2: Nekketsu-hen";
-        //entry.AnimePlanetURL = "kizumonogatari-part-2-nekketsu-hen";
-        int id = compareAdditionalInfo(entry);
-        System.out.println(id);
-        */
-        /*
-        Entry entry = new Entry();
-        entry.AnimePlanetURL = "mushishi-hihamukage";
-        AnimePlanetManager.getAdditionalInfo(entry);
-        System.out.println("Episode Count: " + entry.totalEpisodes);
-        for(String studio : entry.studios) {
-            System.out.println("Studio: " + studio);
-        }
-        System.out.println("Season: " + entry.season);
-        System.out.println("Year: " + entry.year);
-        System.out.println("Year End: " + entry.yearEnd);
-        System.out.println("Type: " + entry.type.AP);
-        System.out.println("Description: " + entry.description);
-
-        Entry entry2 = MyAnimeListManager.getAdditionalInfo(21329);
-        System.out.println("Episode Count: " + entry2.totalEpisodes);
-        for(String studio : entry2.studios) {
-            System.out.println("Studio: " + studio);
-        }
-        System.out.println("Season: " + entry2.season);
-        System.out.println("Year: " + entry2.year);
-        System.out.println("Year End: " + entry2.yearEnd);
-        System.out.println("Type: " + entry2.type.AP);
-        */
-        //if(true) return;
-
         String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=1"));
         //Look for more pages...
         String regexPages = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
