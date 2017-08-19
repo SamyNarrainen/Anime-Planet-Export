@@ -36,11 +36,6 @@ public class Main {
     public static final List<Entry> problems = new ArrayList<Entry>();
 
     /**
-     * Whether case is considered when comparing names of anime entries.
-     */
-    public static final boolean IGNORE_CASE = true;
-
-    /**
      * The maximum exclusive Levenshtein Distance that is considered when comparing names.
      */
     public static final int LAVEN_DIST = 2;
@@ -347,21 +342,13 @@ public class Main {
         String regexId = "anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
         Matcher matcherId = Pattern.compile(regexId).matcher(contents);
 
-        if(IGNORE_CASE) {
-            name = name.toLowerCase();
-        }
-
         int shortestDistance = -1, shortestDistanceId = -1;
 
         while(matcherId.find()) {
             int id = Integer.parseInt(matcherId.group(1));
             String title = matcherId.group(2);
 
-            if(IGNORE_CASE) {
-                title = title.toLowerCase();
-            }
-
-            if(name.equals(title)) {
+            if(name.compareToIgnoreCase(title) == 0) {
                 return new Result(id, true);
             } else {
                 //TODO check the actual page, sometimes there are differences between the API and the page names, AKA JoJo S2.
@@ -405,8 +392,8 @@ public class Main {
             Thread.sleep(500);
             Entry malEntry = MyAnimeListManager.getAdditionalInfo(id);
 
-            if(VERBOS) System.out.println(entry.name + "," + entry.year + "," + entry.yearEnd + "," + entry.season + "," + entry.totalEpisodes + "," + entry.type + ",");
-            if(VERBOS) System.out.println(entry.name + "," + malEntry.year + "," + malEntry.yearEnd + "," + malEntry.season + "," + malEntry.totalEpisodes + "," + malEntry.type + "\n");
+            //if(VERBOS) System.out.println(entry.name + "," + entry.year + "," + entry.yearEnd + "," + entry.season + "," + entry.totalEpisodes + "," + entry.type + ",");
+            //if(VERBOS) System.out.println(entry.name + "," + malEntry.year + "," + malEntry.yearEnd + "," + malEntry.season + "," + malEntry.totalEpisodes + "," + malEntry.type + "\n");
 
             if(entry.year == malEntry.year
                     && entry.yearEnd == malEntry.yearEnd
@@ -421,6 +408,10 @@ public class Main {
                         } else if(studio.compareToIgnoreCase("Studio Trigger") == 0) {
                             //Studio Trigger is known as Trigger on MAL.
                             if(malStudio.compareToIgnoreCase("Trigger") == 0) {
+                                return id;
+                            }
+                        } else if(studio.compareToIgnoreCase("J.C. Staff") == 0) {
+                            if(malStudio.compareToIgnoreCase("J.C.Staff") == 0) {
                                 return id;
                             }
                         }
@@ -469,18 +460,12 @@ public class Main {
 
         while(matcher.find()) {
             int id = Integer.parseInt(matcher.group(1));
-            String title = matcher.group(2);
-            String english = matcher.group(3);
-            String synonyms = matcher.group(4);
+            String title = matcher.group(2).toLowerCase();
+            String english = matcher.group(3).toLowerCase();
+            String synonyms = matcher.group(4).toLowerCase();
+            name = name.toLowerCase();
 
-            if(IGNORE_CASE) {
-                name = name.toLowerCase();
-                title = title.toLowerCase();
-                english = english.toLowerCase();
-                synonyms = synonyms.toLowerCase();
-            }
-
-            if(title.equals(name) || synonyms.contains(name) || english.equals(name)) {
+            if (title.equals(name) || synonyms.contains(name) || english.equals(name)) {
                 return new Result(id, true);
             } else {
                 List<String> names = new ArrayList<String>();
