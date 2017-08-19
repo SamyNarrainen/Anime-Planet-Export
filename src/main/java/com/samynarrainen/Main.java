@@ -37,7 +37,12 @@ public class Main {
     /**
      * To prevent the execution of code only necessary during testing/development.
      */
-    public static final boolean VERBOS = true;
+    public static final boolean VERBOS = false;
+
+    /**
+     * Whether or not output intended for a user is printed.
+     */
+    public static final boolean USER_OUTPUT = true;
 
     public static void main(String[] args) throws Exception {
         int pages = 1;
@@ -45,6 +50,7 @@ public class Main {
         final String USERNAME_MAL = args[1];
         //Authentication for MAL API
         final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
+        if(USER_OUTPUT) System.out.println("Exporting " + USERNAME_AP + "'s anime-planet account...");
 
         String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=1"));
         //Look for more pages...
@@ -75,21 +81,17 @@ public class Main {
         }
 
         for(Entry e : problems) {
-            System.out.println("PROBLEM PRE: " + e);
-        }
-
-        for(Entry e : problems) {
             int id = compareAdditionalInfo(e);
             if(id != -1) {
-                System.out.println("Solved problem for " + e.AnimePlanetURL + " matching to: " + id);
                 e.id = id;
+                if(USER_OUTPUT) System.out.println("Matched http://www.anime-planet.com/anime/" + e.AnimePlanetURL + " to https://myanimelist.net/anime/" + e.id);
             }
         }
 
         //Group all actual problems together when printing... TODO or remove them from the array, bit more messsy though.
         for(Entry e : problems) {
             if(e.id == -1) {
-                System.out.println("PROBLEM: " + e);
+                if(USER_OUTPUT) System.out.println("Couldn't find a match for: http://www.anime-planet.com/anime/" + e.AnimePlanetURL);
             }
         }
 
@@ -128,7 +130,9 @@ public class Main {
             if(VERBOS) System.out.println("Found Match for \"" + e.name + "\" first try");
         }
 
-        System.out.println((e.id == -1 ? "COULDN'T FIND: " : "FOUND: ") + e);
+        if(e.id != -1) {
+            if(USER_OUTPUT) System.out.println("Matched http://www.anime-planet.com/anime/" + e.AnimePlanetURL + " to https://myanimelist.net/anime/" + e.id);
+        }
     }
 
     public static Result searchForId(String name, List<Entry> entries, String authentication) throws Exception {
@@ -272,6 +276,11 @@ public class Main {
                 Entry entry = new Entry();
                 entry.name = matcher.group(1);
                 entry.status = Status.get(matcherStatus.group(1));
+
+                if(entry.status.equals(Status.WontWatch)) {
+                    //TODO Skipping over this as MAL doesn't support it.
+                    continue;
+                }
 
                 Matcher matcherURL = patternURL.matcher(matcher.group(0));
                 if(matcherURL.find()) {

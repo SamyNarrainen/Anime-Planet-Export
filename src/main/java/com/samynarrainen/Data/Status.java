@@ -7,9 +7,10 @@ public enum Status {
     None("-1", ""),
     Watched("1", "Completed"),
     Watching("2", "Watching"),
+    Dropped("3", "Dropped"),
     WantToWatch("4", "Plan to Watch"),
     Stalled("5", "On-Hold"),
-    Dropped("3", "Dropped");
+    WontWatch("6", "");
 
     /**
      * The value used by AP to represent a given status.
@@ -37,6 +38,6 @@ public enum Status {
                 return status;
             }
         }
-        return null;
+        return None;
     }
 }
