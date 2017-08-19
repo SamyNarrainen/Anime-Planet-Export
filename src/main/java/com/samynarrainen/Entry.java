@@ -1,5 +1,7 @@
 package com.samynarrainen;
 
+import com.samynarrainen.Data.Type;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,6 +37,13 @@ public class Entry {
      * The number of times the series has been watched.
      */
     public int watchCount = -1;
+
+
+    public List<String> studios = new ArrayList<String>();
+    public int year = -1, yearEnd = -1;
+    public String season = "";
+    public int totalEpisodes = -1;
+    public Type type;
 
     /**
      * Date format used by MAL.

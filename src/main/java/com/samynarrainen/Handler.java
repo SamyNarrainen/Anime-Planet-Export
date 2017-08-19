@@ -1,5 +1,6 @@
 package com.samynarrainen;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -21,6 +22,18 @@ public class Handler implements Runnable {
     public void run() {
         try {
             Main.processEntry(entry, entries, authentication);
+        } catch (IOException e) {
+          if(e.getMessage().contains("HTTP response code: 429")) {
+              //Got timed out! Let's retry?
+              while(true) {
+                  try {
+                      Main.processEntry(entry, entries, authentication);
+                      break;
+                  } catch (Exception e2) {
+                      System.out.println("Encountered error once again whilst trying to recover from timeout exception.");
+                  }
+              }
+          }
         } catch (Exception e) {
             e.printStackTrace();
         }

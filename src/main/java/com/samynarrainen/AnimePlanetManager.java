@@ -1,6 +1,7 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.FeedResult;
+import com.samynarrainen.Data.Type;
 
 import java.io.IOException;
 import java.net.URL;
@@ -90,4 +91,84 @@ public class AnimePlanetManager {
         }
     }
 
+    /**
+     * Visits the individual page for the given entry on AP and scrapes additional information
+     * that can be used to find a match for entries that haven't been found yet.
+     * @param entry
+     */
+    public static void getAdditionalInfo(Entry entry) throws IOException {
+        String contents = Main.getPageContents(new URL("http://www.anime-planet.com/anime/" + entry.AnimePlanetURL));
+        System.out.println(contents);
+
+        //Group 1: Type data
+        //Group 2: Studio data
+        //Group 3: Year data
+        //String regexInfo = "pure-g entryBar.*?class=\"type\".*?>(.*?)<.*?studios.*?>(.*?)<.*?years.*?>(\\d*?)<.*?section.*?itemprop=\"description\">.*?>(.*?)<";
+        //String regexInfo = "pure-g entryBar.*?class=\"type\".*?>(.*?)<.*?class=\"pure-.*?>(.*?)</div.*?years.*?>(\\d*?)<.*?section.*?itemprop=\"description\">.*?>(.*?)<";
+        //TODO Discontinue description until a use is found for it. Make sure to account for case of no description.
+        //String regexInfo = "pure-g entryBar.*?class=\"type\".*?>(.*?)<.*?class=\"pure-.*?>(.*?)</div.*?datePublished\">(.*?)</div.*?section.*?itemprop=\"description\">.*?>(.*?)<";
+        String regexInfo = "pure-g entryBar.*?class=\"type\".*?>(.*?)<.*?class=\"pure-.*?>(.*?)</div.*?datePublished\">(.*?)</div.*?section";
+
+        Pattern patternInfo = Pattern.compile(regexInfo);
+        Matcher matcherInfo = patternInfo.matcher(contents);
+
+        String regexSeason = "pure-g entryBar.*?seasons.*?>(.*?)<.*?section.*?";
+        Matcher matcherSeason = Pattern.compile(regexSeason).matcher(contents);
+
+        //Group 1: Studio
+        String regexStudio = "studios/.*?>(.*?)<";
+
+        //Group 1: Year
+        String regexYear = "years/.*?>(\\d{4})";
+
+        if(matcherInfo.find()) {
+            String type = matcherInfo.group(1);
+            type = type.substring(0, type.indexOf('(') - 1);
+
+            if(type.equals(Type.Movie.AP)) {
+                entry.type = Type.Movie;
+            } else if(type.equals(Type.OVA.AP)) {
+                entry.type = Type.OVA;
+            } else if(type.equals(Type.Special.AP) || type.equals(Type.DVD_Special.AP)) {
+                //MAL doesn't distinguish between DVD and ordinary specials.
+                entry.type = Type.Special;
+            } else if(type.equals(Type.TV.AP)) {
+                entry.type = Type.TV;
+            }
+
+            if(entry.status.equals(Main.WATCHED)) {
+                entry.totalEpisodes = entry.episodes;
+            } else {
+                //Group 1: Episodes
+                String regexTotalEpisodes = "\\((\\d*?) ";
+                Matcher matcherTotalEpisodes = Pattern.compile(regexTotalEpisodes).matcher(matcherInfo.group(1));
+                if(matcherTotalEpisodes.find()) {
+                    entry.totalEpisodes = Integer.parseInt(matcherTotalEpisodes.group(1));
+                }
+            }
+            //OVA (2 eps)
+            //TV (12 eps)
+            //TV Special (1 ep x 45 min)
+            //Movie (1 ep x 107 min)
+
+            Matcher matcherStudio = Pattern.compile(regexStudio).matcher(matcherInfo.group(2));
+            while(matcherStudio.find()) {
+                entry.studios.add(matcherStudio.group(1));
+            }
+
+            Matcher matcherYear = Pattern.compile(regexYear).matcher(matcherInfo.group(3));
+            while(matcherYear.find()) {
+                if(entry.year == -1) {
+                    entry.year = Integer.parseInt(matcherYear.group(1));
+                } else if(entry.yearEnd == -1) {
+                    //The publishing year has already been set, this final year must be the publishing end year.
+                    entry.yearEnd = Integer.parseInt(matcherYear.group(1));
+                }
+            }
+
+            if(matcherSeason.find()) {
+                entry.season = matcherSeason.group(1);
+            }
+        }
+    }
 }

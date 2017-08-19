@@ -1,5 +1,7 @@
 package com.samynarrainen;
 
+import com.samynarrainen.Data.Type;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -68,5 +70,67 @@ public class MyAnimeListManager {
             }
         }
         reader.close();
+    }
+
+    /**
+     * Extracts additional info from the specified page from MAL and returns the info contained in an Entry.
+     * TODO scape description, might be worth doing it at API search level though.
+     * @param id
+     * @return
+     */
+    public static Entry getAdditionalInfo(int id) throws IOException {
+        Entry entry = new Entry();
+
+        String contents = Main.getPageContents(new URL("https://myanimelist.net/anime/" + id));
+        //System.out.println(contents);
+
+        //Group 1: Type
+        //Group 2: Episodes
+        //Group 3: Year data
+        //Group 4: Studio
+        String regexInfo = "Information.*?\\?type=.*?\">(.*?)<.*?Episodes:</span>(.*?)<.*?Aired:</span>.*?,(.*?)<.*?Studios:.*?producer.*?title=\"(.*?)\"";
+        Matcher matcherInfo = Pattern.compile(regexInfo).matcher(contents);
+
+        //Group 1: Season
+        String regexSeason = "Premiered:.*?season.*?\">(.*?)<";
+        Matcher matcherSeason = Pattern.compile(regexSeason).matcher(contents);
+
+        //Group 1: Year
+        String regexYear = "(\\d{4})";
+
+        if(matcherInfo.find()) {
+            String type = matcherInfo.group(1);
+            if(type.equals(Type.Movie.MAL)) {
+                entry.type = Type.Movie;
+            } else if(type.equals(Type.OVA.MAL)) {
+                entry.type = Type.OVA;
+            } else if(type.equals(Type.Special.MAL)) {
+                entry.type = Type.Special;
+            } else if(type.equals(Type.TV.MAL)) {
+                entry.type = Type.TV;
+            }
+
+            Matcher matcherYear = Pattern.compile(regexYear).matcher(matcherInfo.group(3));
+            while(matcherYear.find()) {
+                if(entry.year == -1) {
+                    entry.year = Integer.parseInt(matcherYear.group(1));
+                } else if(entry.yearEnd == -1) {
+                    entry.yearEnd = Integer.parseInt(matcherYear.group(1));
+                    if(entry.yearEnd == entry.year) {
+                        entry.yearEnd = -1; //AP doesn't give an end year if they're the same.
+                    }
+                }
+            }
+
+            entry.totalEpisodes = Integer.parseInt(matcherInfo.group(2).replace(" ", ""));
+            //TODO MAL separates producers and studio, whilst AP doesn't.
+            entry.studios.add(matcherInfo.group(4));
+
+            if(matcherSeason.find()) {
+                entry.season = matcherSeason.group(1);
+            }
+        }
+
+        return entry;
     }
 }

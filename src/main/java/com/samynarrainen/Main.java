@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.regex.Matcher;
@@ -55,6 +56,42 @@ public class Main {
         //Authentication for MAL API
         final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
 
+
+        /*
+        Entry entry = new Entry();
+        entry.name = "Attack on Titan OVA";
+        entry.AnimePlanetURL = "attack-on-titan-ova";
+        //entry.name = "Kizumonogatari Part 2: Nekketsu-hen";
+        //entry.AnimePlanetURL = "kizumonogatari-part-2-nekketsu-hen";
+        int id = compareAdditionalInfo(entry);
+        System.out.println(id);
+        */
+        /*
+        Entry entry = new Entry();
+        entry.AnimePlanetURL = "mushishi-hihamukage";
+        AnimePlanetManager.getAdditionalInfo(entry);
+        System.out.println("Episode Count: " + entry.totalEpisodes);
+        for(String studio : entry.studios) {
+            System.out.println("Studio: " + studio);
+        }
+        System.out.println("Season: " + entry.season);
+        System.out.println("Year: " + entry.year);
+        System.out.println("Year End: " + entry.yearEnd);
+        System.out.println("Type: " + entry.type.AP);
+        System.out.println("Description: " + entry.description);
+
+        Entry entry2 = MyAnimeListManager.getAdditionalInfo(21329);
+        System.out.println("Episode Count: " + entry2.totalEpisodes);
+        for(String studio : entry2.studios) {
+            System.out.println("Studio: " + studio);
+        }
+        System.out.println("Season: " + entry2.season);
+        System.out.println("Year: " + entry2.year);
+        System.out.println("Year End: " + entry2.yearEnd);
+        System.out.println("Type: " + entry2.type.AP);
+        */
+        //if(true) return;
+
         String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=1"));
         //Look for more pages...
         String regexPages = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
@@ -83,9 +120,35 @@ public class Main {
             e.printStackTrace();
         }
 
+
         for(Entry e : problems) {
-            System.out.println("PROBLEM: " + e);
+            int id = compareAdditionalInfo(e);
+            if(id != -1) {
+                System.out.println("Solved problem for " + e.AnimePlanetURL + " matching to: " + id);
+                e.id = id;
+            } else {
+                System.out.println("PROBLEM: " + e);
+            }
         }
+        /*
+        {
+            Iterator<Entry> iterator = problems.iterator();
+            while(iterator.hasNext()) {
+                Entry e = iterator.next();
+
+                //Attempt to solve these problems first.
+                int id = compareAdditionalInfo(e);
+                if(id != -1) {
+                    e.id = id;
+                    iterator.remove();
+                }
+            }
+
+        }
+*/
+
+        List<FeedResult> feed = AnimePlanetManager.exportFeed(USERNAME_AP);
+        AnimePlanetManager.calculateDates(feed, entries);
 
         for(Entry e : entries) {
             if(e.id != -1) {
@@ -123,11 +186,14 @@ public class Main {
     }
 
     public static Result searchForId(String name, List<Entry> entries, String authentication) throws Exception {
+        final int sleepTime = 2000;
+        Thread.sleep(sleepTime); //Otherwise requests are sent too quickly.
         Result result = Main.getMALID(name);
         if(result.id != -1) {
             for(Entry e : entries) {
                 if (e.id == result.id) {
                     if(VERBOS) System.out.println("Warning: conflict with \"" + name + "\" with \"" + e.name + "\" trying search API...");
+                    Thread.sleep(sleepTime); //Otherwise requests are sent too quickly.
                     //The id from website search produced a conflict ID, attempt the search API.
                     result = getMALIDAPI(name, authentication);
 
@@ -158,6 +224,7 @@ public class Main {
             }
         } else {
             if(VERBOS) System.out.println("No search result for \"" + name + "\", trying API search...");
+            Thread.sleep(sleepTime); //Otherwise requests are sent too quickly.
             result = getMALIDAPI(name, authentication);
             if(result.id != -1) {
                 for(Entry e2 : entries) {
@@ -173,8 +240,6 @@ public class Main {
                 }
             }
         }
-        //Otherwise requests are sent too quickly.
-        Thread.sleep(500);
         return result;
     }
 
@@ -358,6 +423,52 @@ public class Main {
         }
 
         return new Result(-1, false);
+    }
+
+
+    /**
+     * Uses the additional info of the entry and compares it against additional info found on MAL to find a match.
+     * @param entry
+     */
+    public static int compareAdditionalInfo(Entry entry) throws IOException, InterruptedException {
+        if(entry.year == -1) {
+            //Additional information isn't set for this entry
+            AnimePlanetManager.getAdditionalInfo(entry);
+        }
+
+        String contents = getPageContents(new URL("https://myanimelist.net/search/all?q=" + entry.name.replace(" ", "%20")));
+        //Group 1: ID
+        //Group 2: Title
+        String regexId = "anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
+        Matcher matcherId = Pattern.compile(regexId).matcher(contents);
+
+        while(matcherId.find()) {
+            int id = Integer.parseInt(matcherId.group(1));
+
+            Thread.sleep(500);
+            Entry malEntry = MyAnimeListManager.getAdditionalInfo(id);
+
+            if(VERBOS) System.out.println(entry.name + "," + entry.year + "," + entry.yearEnd + "," + entry.season + "," + entry.totalEpisodes + "," + entry.type + ",");
+            if(VERBOS) System.out.println(entry.name + "," + malEntry.year + "," + malEntry.yearEnd + "," + malEntry.season + "," + malEntry.totalEpisodes + "," + malEntry.type + "\n");
+
+            if(entry.year == malEntry.year
+                    && entry.yearEnd == malEntry.yearEnd
+                    && entry.season.equals(malEntry.season)
+                    && entry.totalEpisodes == malEntry.totalEpisodes
+                    && entry.type.equals(malEntry.type)) {
+
+                for(String studio : entry.studios) {
+                    for(String malStudio : malEntry.studios) {
+                        if(malStudio.equals(studio)) {
+                            return id;
+                        }
+                    }
+                }
+                System.out.println("studios don't match.");
+            }
+        }
+        //Couldn't find a match
+        return -1;
     }
 
     /**
