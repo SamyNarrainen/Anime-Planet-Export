@@ -59,7 +59,6 @@ public class Main {
             System.exit(1);
         }
 
-
         //Start up threads to handle the conversion process...
         ExecutorService executor = Executors.newFixedThreadPool(5);
         for(Entry e : entries) {
@@ -72,19 +71,6 @@ public class Main {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
-
-        /*
-        //Attempt to resolve entries that weren't successfully converted...
-        for(Entry e : entries) {
-            if(e.id == -1) {
-                e.id = compareAdditionalInfo(e);
-                if(e.id != -1) {
-                    if(USER_OUTPUT) System.out.println("Matched http://www.anime-planet.com/anime/" + e.AnimePlanetURL + " to https://myanimelist.net/anime/" + e.id);
-                }
-            }
-        }
-        */
 
         //Group all actual problems together when printing...
         for(Entry e : entries) {
@@ -102,38 +88,24 @@ public class Main {
     }
 
     public static void processEntry(Entry e, List<Entry> entries, String authentication) throws Exception {
-        Result result = searchForId(e.name, entries, authentication);
+        Result result = searchForId(e, entries, authentication);
 
         if(result.id == -1) {
             if(VERBOS) System.out.println("Couldn't find match for \"" + e.name + "\" on first attempt.");
-            for(int i = 0; i < e.altTitles.size(); i++) {
-                result = searchForId(e.altTitles.get(i), entries, authentication);
-                if(result.id != -1) {
-                    e.id = result.id;
-                    e.perfectMatch = result.perfectMatch;
-                    if(VERBOS) System.out.println("Found Match for \"" + e.name + "\" on attempt " + i + 2);
-                    break;
-                }
-            }
-            //Looked through the alternative titles, but still couldn't find a match.
-            if(result.id == -1) {
-                if(VERBOS) System.out.println("Couldn't find match for \"" + e.name);
-            }
         } else {
             e.id = result.id;
             e.perfectMatch = result.perfectMatch;
 
-            /*
             //Double check that a perfect result can't be found...
             if(!result.perfectMatch) {
-                Result result2 = MyAnimeListManager.getMALIDAPI(e.name, authentication);
+                Result result2 = MyAnimeListManager.getMALIDAPI(e, authentication);
                 if(result.id != -1 && result2.perfectMatch && find(entries, result2.id) == null) {
                     if(VERBOS) System.out.println("Replacing " + result.id + " with perfect result " + result2.id + " for " + e.name);
                     e.id = result2.id;
                     e.perfectMatch = result2.perfectMatch;
                 }
             }
-            */
+
             if(VERBOS) System.out.println("Found Match for \"" + e.name + "\" first try");
         }
 
@@ -184,7 +156,8 @@ public class Main {
         return null;
     }
 
-    public static Result searchForId(String name, List<Entry> entries, String authentication) throws Exception {
+    public static Result searchForId(Entry entryIn, List<Entry> entries, String authentication) throws Exception {
+        final String name = entryIn.name;
         final int sleepTime = 2000;
         Thread.sleep(sleepTime); //Otherwise requests are sent too quickly.
         Result result = MyAnimeListManager.getMALID(name);
@@ -196,7 +169,7 @@ public class Main {
             if(entry.perfectMatch) {
                 //This entry is a perfect match, so don't erase it! Instead, try again...
                 Thread.sleep(sleepTime);
-                result = MyAnimeListManager.getMALIDAPI(name, authentication);
+                result = MyAnimeListManager.getMALIDAPI(entryIn, authentication);
                 entry = find(entries, result.id);
 
                 //There's another conflict...
@@ -217,7 +190,7 @@ public class Main {
                     return result;
                 } else {
                     Thread.sleep(sleepTime);
-                    result = MyAnimeListManager.getMALIDAPI(name, authentication);
+                    result = MyAnimeListManager.getMALIDAPI(entryIn, authentication);
                     entry = find(entries, result.id);
 
                     //There's another conflict...
@@ -236,7 +209,7 @@ public class Main {
             if(result.id == -1) {
                 if(VERBOS) System.out.println("No result for \"" + name + "\", trying API...");
                 Thread.sleep(sleepTime);
-                result = MyAnimeListManager.getMALIDAPI(name, authentication);
+                result = MyAnimeListManager.getMALIDAPI(entryIn, authentication);
 
                 entry = find(entries, result.id);
                 if(entry != null) {

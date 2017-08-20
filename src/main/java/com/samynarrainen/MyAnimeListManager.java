@@ -162,13 +162,14 @@ public class MyAnimeListManager {
 
     /**
      * Uses the MAL search API to receive an id.
-     * @param name
+     * @param entry
      * @param authentication username:password in base64 binary
      * @return an ID only if the name matches perfectly.
      * @throws MalformedURLException
      * @throws IOException
      */
-    public static Result getMALIDAPI(String name, String authentication) throws IOException {
+    public static Result getMALIDAPI(Entry entry, String authentication) throws IOException {
+        String name = entry.name;
         URL url = new URL("https://myanimelist.net/api/anime/search.xml?q=" + name.replace(" ", "%20"));
         String basicAuth = "Basic " + authentication;
         HttpURLConnection httpURLConnection = (HttpURLConnection)  url.openConnection();
@@ -195,22 +196,31 @@ public class MyAnimeListManager {
             int id = Integer.parseInt(matcher.group(1));
             String title = matcher.group(2).toLowerCase();
             String english = matcher.group(3).toLowerCase();
-            String synonyms = matcher.group(4).toLowerCase();
+            List<String> synonyms = new ArrayList<String>();
+            synonyms.addAll(Arrays.asList(matcher.group(4).toLowerCase().split(";")));
             name = name.toLowerCase();
 
-            if (title.equals(name) || synonyms.contains(name) || english.equals(name)) { //TODO what about the alternative titles for this!
-                return new Result(id, true);
-            } else {
-                List<String> names = new ArrayList<String>();
-                names.addAll(Arrays.asList((synonyms.split(";"))));
-                names.add(title);
-                names.add(english);
+            //A collection of all the names this entry goes by...
+            List<String> entryNames = new ArrayList<String>();
+            entryNames.add(name);
+            entryNames.addAll(entry.altTitles);
 
-                for(String s : names) {
-                    int distance = StringUtils.getLevenshteinDistance(name, s);
-                    if(distance < Main.LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
-                        shortestDistance = distance;
-                        shortestDistanceId = id;
+            for(String n : entryNames) {
+                System.out.println("N:" + n);
+                if (title.equals(n) || synonyms.contains(n) || english.equals(n)) {
+                    return new Result(id, true);
+                } else {
+                    List<String> names = new ArrayList<String>();
+                    names.addAll(synonyms);
+                    names.add(title);
+                    names.add(english);
+
+                    for(String s : names) {
+                        int distance = StringUtils.getLevenshteinDistance(name, s);
+                        if(distance < Main.LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
+                            shortestDistance = distance;
+                            shortestDistanceId = id;
+                        }
                     }
                 }
             }
