@@ -1,15 +1,14 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.Type;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.io.UnsupportedEncodingException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -223,7 +222,7 @@ public class MyAnimeListManager {
             return new Result(shortestDistanceId, false);
         }
 
-        if(VERBOS) System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
+        if(VERBOS) System.out.println("Search API couldn't find match for \"" + name + "\"");
         return new Result();
     }
 
@@ -246,7 +245,7 @@ public class MyAnimeListManager {
 
         while(matcherId.find()) {
             int id = Integer.parseInt(matcherId.group(1));
-            String title = matcherId.group(2);
+            String title = StringEscapeUtils.unescapeHtml4(matcherId.group(2)); //TODO should be doing this more, all around?
 
             if(name.compareToIgnoreCase(title) == 0) {
                 return new Result(id, true);
