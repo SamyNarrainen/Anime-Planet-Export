@@ -21,13 +21,7 @@ public class Main {
     /**
      * Collection of anime entries that were scraped from the AP account.
      */
-    //TODO split entries across status to improve performance?
     public static final List<Entry> entries = new ArrayList<Entry>();
-
-    /**
-     * Anime entries that encountered problems in the conversion process. E.g couldn't be found on MAL.
-     */
-    public static final List<Entry> problems = new ArrayList<Entry>();
 
     /**
      * The maximum exclusive Levenshtein Distance that is considered when comparing names.
@@ -85,21 +79,23 @@ public class Main {
 
 
         //Attempt to resolve entries that weren't successfully converted...
-        for(Entry e : problems) {
-            int id = compareAdditionalInfo(e);
-            if(id != -1) {
-                e.id = id;
-                if(USER_OUTPUT) System.out.println("Matched http://www.anime-planet.com/anime/" + e.AnimePlanetURL + " to https://myanimelist.net/anime/" + e.id);
+        for(Entry e : entries) {
+            if(e.id == -1) {
+                e.id = compareAdditionalInfo(e);
+                if(e.id != -1) {
+                    if(USER_OUTPUT) System.out.println("Matched http://www.anime-planet.com/anime/" + e.AnimePlanetURL + " to https://myanimelist.net/anime/" + e.id);
+                }
             }
         }
 
         //Group all actual problems together when printing...
-        for(Entry e : problems) {
+        for(Entry e : entries) {
             if(e.id == -1) {
                 if(USER_OUTPUT) System.out.println("Couldn't find a match for: http://www.anime-planet.com/anime/" + e.AnimePlanetURL);
             }
         }
 
+        //TODO export this to a file for the user to simply upload?
         for(Entry e : entries) {
             if(e.id != -1) {
                 System.out.println(e.toXML());
@@ -123,7 +119,6 @@ public class Main {
             }
             //Looked through the alternative titles, but still couldn't find a match.
             if(result.id == -1) {
-                problems.add(e);
                 if(VERBOS) System.out.println("Couldn't find match for \"" + e.name);
             }
         } else {
@@ -154,7 +149,6 @@ public class Main {
                         //TODO Remove e as there could also be a problem with this entry?
                         if (!e.perfectMatch) {
                             e.id = -1;
-                            problems.add(e);
                             if(VERBOS) System.out.println("Error: \"" + name + "\" involved in a search conflict with \"" + e.name + "\"");
                         }
                         return result;
@@ -164,7 +158,6 @@ public class Main {
                             if (e2.id == result.id) {
                                 if (!e2.perfectMatch) {
                                     e2.id = -1;
-                                    problems.add(e2);
                                     if(VERBOS) System.out.println("Error: \"" + e2.name + "\" involved in a API search conflict with \"" + name + "\"");
                                 }
                                 result.id = -1;
@@ -183,7 +176,6 @@ public class Main {
                     if(e2.id == result.id) {
                         if(!e2.perfectMatch) {
                             e2.id = -1;
-                            problems.add(e2);
                             if(VERBOS) System.out.println("Error: \"" + e2.name + "\" involved in a API search conflict with \"" + name + "\"");
                         }
                         result.id = -1;
