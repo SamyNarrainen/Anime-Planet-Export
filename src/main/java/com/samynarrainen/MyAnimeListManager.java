@@ -198,7 +198,7 @@ public class MyAnimeListManager {
             String synonyms = matcher.group(4).toLowerCase();
             name = name.toLowerCase();
 
-            if (title.equals(name) || synonyms.contains(name) || english.equals(name)) {
+            if (title.equals(name) || synonyms.contains(name) || english.equals(name)) { //TODO what about the alternative titles for this!
                 return new Result(id, true);
             } else {
                 List<String> names = new ArrayList<String>();
