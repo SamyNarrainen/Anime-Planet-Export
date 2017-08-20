@@ -44,30 +44,33 @@ public class Main {
      */
     public static final boolean USER_OUTPUT = true;
 
+    /**
+     * args: AP username, MAL username, MAL password
+     */
     public static void main(String[] args) throws Exception {
-        int pages = 1;
         final String USERNAME_AP = args[0];
         final String USERNAME_MAL = args[1];
         //Authentication for MAL API
         final String authentication = DatatypeConverter.printBase64Binary((USERNAME_MAL + ':' + args[2]).getBytes());
         if(USER_OUTPUT) System.out.println("Exporting " + USERNAME_AP + "'s anime-planet account...");
 
-        String contents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=1"));
-        //Look for more pages...
-        String regexPages = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
-        Matcher matcherPages = Pattern.compile(regexPages).matcher(contents);
-        if(matcherPages.find()) {
-            pages = Integer.parseInt(matcherPages.group(2)) + 1; //TODO the page count given is 1 less, so add 1. Find out why.
+        try {
+            entries.addAll(AnimePlanetManager.exportAnimeList(USERNAME_AP));
+        } catch(Exception e) {
+            if(USER_OUTPUT) System.out.println("Failed to export anime-planet list.");
+            System.exit(1);
         }
 
-        entries.addAll(getEntries(contents));
-
-        //Already searched page 1, so start on 2.
-        for(int i = 2; i < pages; i++) {
-            String pageContents = getPageContents(new URL("http://www.anime-planet.com/users/" + USERNAME_AP + "/anime?sort=title&page=" + i));
-            entries.addAll(getEntries(pageContents));
+        try {
+            List<FeedResult> feed = AnimePlanetManager.exportFeed(USERNAME_AP);
+            AnimePlanetManager.calculateDates(feed, entries);
+        } catch(Exception e) {
+            if(USER_OUTPUT) System.out.println("Failed to export dates from anime-planet feed.");
+            System.exit(1);
         }
 
+
+        //Start up threads to handle the conversion process...
         ExecutorService executor = Executors.newFixedThreadPool(5);
         for(Entry e : entries) {
             Handler h = new Handler(e, entries, authentication);
@@ -80,6 +83,8 @@ public class Main {
             e.printStackTrace();
         }
 
+
+        //Attempt to resolve entries that weren't successfully converted...
         for(Entry e : problems) {
             int id = compareAdditionalInfo(e);
             if(id != -1) {
@@ -88,15 +93,12 @@ public class Main {
             }
         }
 
-        //Group all actual problems together when printing... TODO or remove them from the array, bit more messsy though.
+        //Group all actual problems together when printing...
         for(Entry e : problems) {
             if(e.id == -1) {
                 if(USER_OUTPUT) System.out.println("Couldn't find a match for: http://www.anime-planet.com/anime/" + e.AnimePlanetURL);
             }
         }
-
-        List<FeedResult> feed = AnimePlanetManager.exportFeed(USERNAME_AP);
-        AnimePlanetManager.calculateDates(feed, entries);
 
         for(Entry e : entries) {
             if(e.id != -1) {
@@ -138,14 +140,14 @@ public class Main {
     public static Result searchForId(String name, List<Entry> entries, String authentication) throws Exception {
         final int sleepTime = 2000;
         Thread.sleep(sleepTime); //Otherwise requests are sent too quickly.
-        Result result = Main.getMALID(name);
+        Result result = MyAnimeListManager.getMALID(name);
         if(result.id != -1) {
             for(Entry e : entries) {
                 if (e.id == result.id) {
                     if(VERBOS) System.out.println("Warning: conflict with \"" + name + "\" with \"" + e.name + "\" trying search API...");
                     Thread.sleep(sleepTime); //Otherwise requests are sent too quickly.
                     //The id from website search produced a conflict ID, attempt the search API.
-                    result = getMALIDAPI(name, authentication);
+                    result = MyAnimeListManager.getMALIDAPI(name, authentication);
 
                     //No match with the search API.
                     if (result.id == -1) {
@@ -175,7 +177,7 @@ public class Main {
         } else {
             if(VERBOS) System.out.println("No search result for \"" + name + "\", trying API search...");
             Thread.sleep(sleepTime); //Otherwise requests are sent too quickly.
-            result = getMALIDAPI(name, authentication);
+            result = MyAnimeListManager.getMALIDAPI(name, authentication);
             if(result.id != -1) {
                 for(Entry e2 : entries) {
                     if(e2.id == result.id) {
@@ -220,158 +222,6 @@ public class Main {
 
         return contents;
     }
-
-    /**
-     * Returns the anime entries contained within an anime-planet page source.
-     * @param contents
-     * @return
-     * @throws IOException
-     */
-    public static List<Entry> getEntries(String contents) throws IOException {
-        //GROUP 0: anime entry HTML
-        //GROUP 1: Name
-        String regex = "<a title=\"<h5>(.*?)</h5>.*?class=\"card pure-1-6";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(contents);
-
-        //GROUP 1: Alt Title (
-        String regexAltTitle = "Alt title: (.*?)<";
-        Pattern patternAltTitle = Pattern.compile(regexAltTitle);
-
-        String regexAltTitles = "Alt titles: (.*?)<";
-        Pattern patternAltTitles = Pattern.compile(regexAltTitles);
-
-        //GROUP 1: Status
-        String regexStatus = "statusArea.*?status(.)";
-        Pattern patternStatus = Pattern.compile(regexStatus);
-
-        //GROUP 1: Rating
-        String regexRating = "statusArea.*?Rating\">(.*?)<";
-        Pattern patternRating = Pattern.compile(regexRating);
-
-        //GROUP 1: Episodes
-        String regexEpisodes = "statusArea\"><span class=\"status[2|3|5]\"></span>(.*?)eps";
-        Pattern patternEpisodes = Pattern.compile(regexEpisodes);
-
-        //GROUP 1: URL
-        String regexURL = "href=\"/anime/(.*?)\"";
-        Pattern patternURL = Pattern.compile(regexURL);
-
-        //For a watched series, the episodes aren't shown where they usually are, so grab them from the anime information section.
-        //GROUP 1: Episodes
-        String regexEpisodesWatched = "(\\d*?)\\sep.*?\\)";
-        Pattern patternEpisodesWatched = Pattern.compile(regexEpisodesWatched);
-
-        //The number of times the series has been rewatched.
-        //GROUP 1: Watch Count
-        String regexWatchedCount = "Watched.*?(\\d.*?)x";
-        Pattern patternWatchedCount = Pattern.compile(regexWatchedCount);
-
-        List<Entry> entries = new ArrayList<Entry>();
-
-        while(matcher.find()) {
-            Matcher matcherStatus = patternStatus.matcher(matcher.group(0));
-            if(matcherStatus.find()) {
-
-                Entry entry = new Entry();
-                entry.name = matcher.group(1);
-                entry.status = Status.get(matcherStatus.group(1));
-
-                if(entry.status.equals(Status.WontWatch)) {
-                    //TODO Skipping over this as MAL doesn't support it.
-                    continue;
-                }
-
-                Matcher matcherURL = patternURL.matcher(matcher.group(0));
-                if(matcherURL.find()) {
-                    entry.AnimePlanetURL = matcherURL.group(1);
-                }
-
-                Matcher matcherAltTitle = patternAltTitle.matcher(matcher.group(0));
-                if(matcherAltTitle.find()) {
-                    entry.altTitles.add(matcherAltTitle.group(1));
-                } else {
-                    Matcher matcherAltTitles = patternAltTitles.matcher(matcher.group(0));
-                    if(matcherAltTitles.find()) {
-                        //TODO what if the title itself contains a comma. That's why this is different from alttitle.
-                        List<String> titles = Arrays.asList(matcherAltTitles.group(1).split(","));
-                        entry.altTitles.addAll(titles);
-                    }
-                }
-
-                if(entry.status.equals(Status.Watched) || entry.status.equals(Status.Stalled) || entry.status.equals(Status.Dropped) || entry.status.equals(Status.Watching)) {
-                    Matcher matcherRating = patternRating.matcher(matcher.group(0));
-                    if(matcherRating.find()) {
-                        entry.rating = Entry.convertRating(matcherRating.group(1));
-                    }
-
-                    if(entry.status.equals(Status.Watched)) {
-                        Matcher matcherEpisodesWatched = patternEpisodesWatched.matcher(matcher.group(0));
-                        if(matcherEpisodesWatched.find()) {
-                            entry.episodes = Integer.parseInt(matcherEpisodesWatched.group(1).replace(" ", ""));
-                        }
-
-                        Matcher matcherWatchedCount = patternWatchedCount.matcher(matcher.group(0));
-                        if(matcherWatchedCount.find()) {
-                            entry.watchCount = Integer.parseInt(matcherWatchedCount.group(1));
-                        }
-                    } else {
-                        Matcher matcherEpisodes = patternEpisodes.matcher(matcher.group(0));
-                        if(matcherEpisodes.find()) {
-                            entry.episodes = Integer.parseInt(matcherEpisodes.group(1).replace(" ", ""));
-                        }
-                    }
-                }
-
-                entries.add(entry);
-            }
-
-        }
-        return entries;
-    }
-
-    /**
-     * Compares the search results from the MAL website to find a matching name.
-     * @param name
-     * @return
-     * @throws IOException
-     * @throws URISyntaxException
-     */
-    public static Result getMALID(String name) throws IOException, URISyntaxException {
-        String contents = getPageContents(new URL("https://myanimelist.net/search/all?q=" + name.replace(" ", "%20")));
-
-        //Group 1: ID
-        //Group 2: Title
-        String regexId = "anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
-        Matcher matcherId = Pattern.compile(regexId).matcher(contents);
-
-        int shortestDistance = -1, shortestDistanceId = -1;
-
-        while(matcherId.find()) {
-            int id = Integer.parseInt(matcherId.group(1));
-            String title = matcherId.group(2);
-
-            if(name.compareToIgnoreCase(title) == 0) {
-                return new Result(id, true);
-            } else {
-                //TODO check the actual page, sometimes there are differences between the API and the page names, AKA JoJo S2.
-                int distance = StringUtils.getLevenshteinDistance(name, title);
-                if(distance < LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
-                    if(VERBOS) System.out.println("Distance change for " + name + " with " + title + " for distance " + distance);
-                    shortestDistance = distance;
-                    shortestDistanceId = id;
-                }
-            }
-        }
-
-        if(shortestDistanceId != -1) {
-            if(VERBOS) System.out.println("Warning: matched " + name + " to " + shortestDistanceId + " with laven dist of " + shortestDistance);
-            return new Result(shortestDistanceId, false);
-        }
-
-        return new Result(-1, false);
-    }
-
 
     /**
      * Uses the additional info of the entry and compares it against additional info found on MAL to find a match.
@@ -425,71 +275,5 @@ public class Main {
         }
         //Couldn't find a match
         return -1;
-    }
-
-    /**
-     * Uses the MAL search API to receive an id.
-     * @param name
-     * @param authentication username:password in base64 binary
-     * @return an ID only if the name matches perfectly.
-     * @throws MalformedURLException
-     * @throws IOException
-     */
-    public static Result getMALIDAPI(String name, String authentication) throws IOException {
-        URL url = new URL("https://myanimelist.net/api/anime/search.xml?q=" + name.replace(" ", "%20"));
-        String basicAuth = "Basic " + authentication;
-        HttpURLConnection httpURLConnection = (HttpURLConnection)  url.openConnection();
-        httpURLConnection.addRequestProperty("User-Agent", "Chrome");
-        httpURLConnection.setRequestProperty("Authorization", basicAuth);
-        BufferedReader in = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
-
-        //Load contents of site into single string.
-        String inputLine, contents = "";
-        while ((inputLine = in.readLine()) != null) {
-            contents += inputLine;
-        }
-        in.close();
-
-        //Group 1: ID
-        //Group 2: Title
-        //GROUP 3: English
-        //Group 4: Synonyms
-        String regex = "<id>(\\d*?)</id>.*?<title>(.*?)</title>.*?<english>(.*?)</english>.*?<synonyms>(.*?)</synonyms>";
-        Matcher matcher = Pattern.compile(regex).matcher(contents);
-
-        int shortestDistance = -1, shortestDistanceId = -1;
-
-        while(matcher.find()) {
-            int id = Integer.parseInt(matcher.group(1));
-            String title = matcher.group(2).toLowerCase();
-            String english = matcher.group(3).toLowerCase();
-            String synonyms = matcher.group(4).toLowerCase();
-            name = name.toLowerCase();
-
-            if (title.equals(name) || synonyms.contains(name) || english.equals(name)) {
-                return new Result(id, true);
-            } else {
-                List<String> names = new ArrayList<String>();
-                names.addAll(Arrays.asList((synonyms.split(";"))));
-                names.add(title);
-                names.add(english);
-
-                for(String s : names) {
-                    int distance = StringUtils.getLevenshteinDistance(name, s);
-                    if(distance < LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
-                        shortestDistance = distance;
-                        shortestDistanceId = id;
-                    }
-                }
-            }
-        }
-
-        //Couldn't find a perfect match... Was there a close one?
-        if(shortestDistanceId != -1) {
-            return new Result(shortestDistanceId, false);
-        }
-
-        if(VERBOS) System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
-        return new Result();
     }
 }

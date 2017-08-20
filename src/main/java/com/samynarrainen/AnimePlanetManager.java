@@ -5,9 +5,11 @@ import com.samynarrainen.Data.Status;
 import com.samynarrainen.Data.Type;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,6 +19,145 @@ import java.util.regex.Pattern;
  * Created by Samy on 18/08/2017.
  */
 public class AnimePlanetManager {
+
+    /**
+     * Exports the anime entries contained in an anime-planet account.
+     * @param username
+     * @return
+     * @throws IOException
+     */
+    public static List<Entry> exportAnimeList(String username) throws IOException {
+        List<Entry> entries = new ArrayList<Entry>();
+
+        int pages = 1;
+        String contents = Main.getPageContents(new URL("http://www.anime-planet.com/users/" + username + "/anime?sort=title&page=1"));
+
+        //Identify the number of pages contained in the list...
+        String regexPages = "\"pagination aligncenter\".*(page=(.)).*class=\"next\">";
+        Matcher matcherPages = Pattern.compile(regexPages).matcher(contents);
+        if(matcherPages.find()) {
+            pages = Integer.parseInt(matcherPages.group(2)) + 1; //TODO the page count given is 1 less, so add 1. Find out why.
+        }
+
+        entries.addAll(getEntries(contents));
+
+        //Already searched page 1, so start on 2.
+        for(int i = 2; i < pages; i++) {
+            String pageContents = Main.getPageContents(new URL("http://www.anime-planet.com/users/" + username + "/anime?sort=title&page=" + i));
+            entries.addAll(getEntries(pageContents));
+        }
+
+        return entries;
+    }
+
+    /**
+     * Returns the anime entries contained within an anime-planet page source.
+     * @param contents
+     * @return
+     * @throws IOException
+     */
+    private static List<Entry> getEntries(String contents) throws IOException {
+        //GROUP 0: anime entry HTML
+        //GROUP 1: Name
+        String regex = "<a title=\"<h5>(.*?)</h5>.*?class=\"card pure-1-6";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(contents);
+
+        //GROUP 1: Alt Title (
+        String regexAltTitle = "Alt title: (.*?)<";
+        Pattern patternAltTitle = Pattern.compile(regexAltTitle);
+
+        String regexAltTitles = "Alt titles: (.*?)<";
+        Pattern patternAltTitles = Pattern.compile(regexAltTitles);
+
+        //GROUP 1: Status
+        String regexStatus = "statusArea.*?status(.)";
+        Pattern patternStatus = Pattern.compile(regexStatus);
+
+        //GROUP 1: Rating
+        String regexRating = "statusArea.*?Rating\">(.*?)<";
+        Pattern patternRating = Pattern.compile(regexRating);
+
+        //GROUP 1: Episodes
+        String regexEpisodes = "statusArea\"><span class=\"status[2|3|5]\"></span>(.*?)eps";
+        Pattern patternEpisodes = Pattern.compile(regexEpisodes);
+
+        //GROUP 1: URL
+        String regexURL = "href=\"/anime/(.*?)\"";
+        Pattern patternURL = Pattern.compile(regexURL);
+
+        //For a watched series, the episodes aren't shown where they usually are, so grab them from the anime information section.
+        //GROUP 1: Episodes
+        String regexEpisodesWatched = "(\\d*?)\\sep.*?\\)";
+        Pattern patternEpisodesWatched = Pattern.compile(regexEpisodesWatched);
+
+        //The number of times the series has been rewatched.
+        //GROUP 1: Watch Count
+        String regexWatchedCount = "Watched.*?(\\d.*?)x";
+        Pattern patternWatchedCount = Pattern.compile(regexWatchedCount);
+
+        List<Entry> entries = new ArrayList<Entry>();
+
+        while(matcher.find()) {
+            Matcher matcherStatus = patternStatus.matcher(matcher.group(0));
+            if(matcherStatus.find()) {
+
+                Entry entry = new Entry();
+                entry.name = matcher.group(1);
+                entry.status = Status.get(matcherStatus.group(1));
+
+                if(entry.status.equals(Status.WontWatch)) {
+                    //TODO Skipping over this as MAL doesn't support it.
+                    continue;
+                }
+
+                Matcher matcherURL = patternURL.matcher(matcher.group(0));
+                if(matcherURL.find()) {
+                    entry.AnimePlanetURL = matcherURL.group(1);
+                }
+
+                Matcher matcherAltTitle = patternAltTitle.matcher(matcher.group(0));
+                if(matcherAltTitle.find()) {
+                    entry.altTitles.add(matcherAltTitle.group(1));
+                } else {
+                    Matcher matcherAltTitles = patternAltTitles.matcher(matcher.group(0));
+                    if(matcherAltTitles.find()) {
+                        //TODO what if the title itself contains a comma. That's why this is different from alttitle.
+                        List<String> titles = Arrays.asList(matcherAltTitles.group(1).split(","));
+                        entry.altTitles.addAll(titles);
+                    }
+                }
+
+                if(entry.status.equals(Status.Watched) || entry.status.equals(Status.Stalled) || entry.status.equals(Status.Dropped) || entry.status.equals(Status.Watching)) {
+                    Matcher matcherRating = patternRating.matcher(matcher.group(0));
+                    if(matcherRating.find()) {
+                        entry.rating = Entry.convertRating(matcherRating.group(1));
+                    }
+
+                    if(entry.status.equals(Status.Watched)) {
+                        Matcher matcherEpisodesWatched = patternEpisodesWatched.matcher(matcher.group(0));
+                        if(matcherEpisodesWatched.find()) {
+                            entry.episodes = Integer.parseInt(matcherEpisodesWatched.group(1).replace(" ", ""));
+                        }
+
+                        Matcher matcherWatchedCount = patternWatchedCount.matcher(matcher.group(0));
+                        if(matcherWatchedCount.find()) {
+                            entry.watchCount = Integer.parseInt(matcherWatchedCount.group(1));
+                        }
+                    } else {
+                        Matcher matcherEpisodes = patternEpisodes.matcher(matcher.group(0));
+                        if(matcherEpisodes.find()) {
+                            entry.episodes = Integer.parseInt(matcherEpisodes.group(1).replace(" ", ""));
+                        }
+                    }
+                }
+
+                entries.add(entry);
+            }
+
+        }
+        return entries;
+    }
 
     /**
      * Exports the personal feed of an anime-planet account into a list of Strings.

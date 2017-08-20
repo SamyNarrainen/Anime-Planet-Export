@@ -1,12 +1,18 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.Type;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -153,5 +159,113 @@ public class MyAnimeListManager {
         }
 
         return entry;
+    }
+
+    /**
+     * Uses the MAL search API to receive an id.
+     * @param name
+     * @param authentication username:password in base64 binary
+     * @return an ID only if the name matches perfectly.
+     * @throws MalformedURLException
+     * @throws IOException
+     */
+    public static Result getMALIDAPI(String name, String authentication) throws IOException {
+        URL url = new URL("https://myanimelist.net/api/anime/search.xml?q=" + name.replace(" ", "%20"));
+        String basicAuth = "Basic " + authentication;
+        HttpURLConnection httpURLConnection = (HttpURLConnection)  url.openConnection();
+        httpURLConnection.addRequestProperty("User-Agent", "Chrome");
+        httpURLConnection.setRequestProperty("Authorization", basicAuth);
+        BufferedReader in = new BufferedReader(new InputStreamReader(httpURLConnection.getInputStream()));
+
+        String inputLine, contents = "";
+        while ((inputLine = in.readLine()) != null) {
+            contents += inputLine;
+        }
+        in.close();
+
+        //Group 1: ID
+        //Group 2: Title
+        //GROUP 3: English
+        //Group 4: Synonyms
+        String regex = "<id>(\\d*?)</id>.*?<title>(.*?)</title>.*?<english>(.*?)</english>.*?<synonyms>(.*?)</synonyms>";
+        Matcher matcher = Pattern.compile(regex).matcher(contents);
+
+        int shortestDistance = -1, shortestDistanceId = -1;
+
+        while(matcher.find()) {
+            int id = Integer.parseInt(matcher.group(1));
+            String title = matcher.group(2).toLowerCase();
+            String english = matcher.group(3).toLowerCase();
+            String synonyms = matcher.group(4).toLowerCase();
+            name = name.toLowerCase();
+
+            if (title.equals(name) || synonyms.contains(name) || english.equals(name)) {
+                return new Result(id, true);
+            } else {
+                List<String> names = new ArrayList<String>();
+                names.addAll(Arrays.asList((synonyms.split(";"))));
+                names.add(title);
+                names.add(english);
+
+                for(String s : names) {
+                    int distance = StringUtils.getLevenshteinDistance(name, s);
+                    if(distance < Main.LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
+                        shortestDistance = distance;
+                        shortestDistanceId = id;
+                    }
+                }
+            }
+        }
+
+        //There wasn't a perfect match across all the search results.
+        //Try using the result which had the shortest lavenshtein distance...
+        if(shortestDistanceId != -1) {
+            return new Result(shortestDistanceId, false);
+        }
+
+        if(VERBOS) System.out.println("Warning: search API couldn't find match for \"" + name + "\"");
+        return new Result();
+    }
+
+    /**
+     * Compares the search results from the MAL website to find a matching name.
+     * @param name
+     * @return
+     * @throws IOException
+     * @throws URISyntaxException
+     */
+    public static Result getMALID(String name) throws IOException, URISyntaxException {
+        String contents = Main.getPageContents(new URL("https://myanimelist.net/search/all?q=" + name.replace(" ", "%20")));
+
+        //Group 1: ID
+        //Group 2: Title
+        String regexId = "anime/(\\d*?)/.*?hoverinfo_trigger*.?fw-b fl-l.*?#revInfo\\d*?\">(.*?)<";
+        Matcher matcherId = Pattern.compile(regexId).matcher(contents);
+
+        int shortestDistance = -1, shortestDistanceId = -1;
+
+        while(matcherId.find()) {
+            int id = Integer.parseInt(matcherId.group(1));
+            String title = matcherId.group(2);
+
+            if(name.compareToIgnoreCase(title) == 0) {
+                return new Result(id, true);
+            } else {
+                //TODO check the actual page, sometimes there are differences between the API and the page names, AKA JoJo S2.
+                int distance = StringUtils.getLevenshteinDistance(name, title);
+                if(distance < Main.LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
+                    if(VERBOS) System.out.println("Distance change for " + name + " with " + title + " for distance " + distance);
+                    shortestDistance = distance;
+                    shortestDistanceId = id;
+                }
+            }
+        }
+
+        if(shortestDistanceId != -1) {
+            if(VERBOS) System.out.println("Warning: matched " + name + " to " + shortestDistanceId + " with laven dist of " + shortestDistance);
+            return new Result(shortestDistanceId, false);
+        }
+
+        return new Result(-1, false);
     }
 }
