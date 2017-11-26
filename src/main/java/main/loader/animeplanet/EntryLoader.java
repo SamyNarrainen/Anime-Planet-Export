@@ -1,4 +1,4 @@
-package main.loader;
+package main.loader.animeplanet;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,5 +26,4 @@ public class EntryLoader { //TODO requires a better name!
         }
         return null;
     }
-
 }

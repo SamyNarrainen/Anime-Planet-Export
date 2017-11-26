@@ -1,4 +1,4 @@
-package main.loader;
+package main.loader.animeplanet;
 
 import com.samynarrainen.Main;
 
