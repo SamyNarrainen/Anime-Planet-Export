@@ -20,4 +20,24 @@ public enum Type {
         AP = ap;
         MAL = mal;
     }
+
+    public static Type fromAnimePlanetString(String animePlanetString) {
+        animePlanetString = animePlanetString.toLowerCase();
+        for(Type type : Type.values()) {
+            if(type.AP.toLowerCase().equals(animePlanetString)) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    public static Type fromMALString(String malString) {
+        malString = malString.toLowerCase();
+        for(Type type : Type.values()) {
+            if(type.MAL.toLowerCase().equals(malString)) {
+                return type;
+            }
+        }
+        return null;
+    }
 }
