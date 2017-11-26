@@ -1,7 +1,10 @@
-package main.exporter;
+package main.exporter.animeplanet;
 
 import com.samynarrainen.Data.Status;
 import com.samynarrainen.Data.Type;
+import main.exporter.Exporter;
+import main.exporter.PersonalExporter;
+import main.loader.animeplanet.EntryLoader;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,12 +14,12 @@ import java.util.regex.Pattern;
 
 /**
  * Scrapes information from an individual entry available on an Anime Planet account's list.
- * To get an entry, see {@link main.loader.EntryLoader}.
+ * To get an entry, see {@link EntryLoader}.
  */
-public class AnimePlanetEntryExporter implements Exporter {
+public class AnimePlanetEntryExporter implements Exporter, PersonalExporter {
 
     /**
-     * The entry scraped from {@link main.loader.EntryLoader} that this exporter is reading from.
+     * The entry scraped from {@link EntryLoader} that this exporter is reading from.
      */
     private final String rawEntry;
 
@@ -44,7 +47,7 @@ public class AnimePlanetEntryExporter implements Exporter {
 
 
     /**
-     * @param rawEntry an entry scraped from {@link main.loader.EntryLoader}
+     * @param rawEntry an entry scraped from {@link EntryLoader}
      */
     public AnimePlanetEntryExporter(String rawEntry) {
         this.rawEntry = rawEntry;
@@ -165,28 +168,12 @@ public class AnimePlanetEntryExporter implements Exporter {
         return null;
     }
 
+    @Override
+    public String prettyPrint() {
+        return toString();
+    }
+
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-
-        try {
-            sb.append("Title: " + getTitle() + System.getProperty("line.separator"));
-            sb.append("Rating: " + getRating() + System.getProperty("line.separator"));
-            sb.append("Status: " + getStatus() + System.getProperty("line.separator"));
-            sb.append("Episodes: " + getNumberOfEpisodes() + System.getProperty("line.separator"));
-            sb.append("Episodes Watched: " + getEpisodesWatched() + System.getProperty("line.separator"));
-            sb.append("URL: " + getURI() + System.getProperty("line.separator"));
-            sb.append("Times Watched: " + getTimesWatched() + System.getProperty("line.separator"));
-            sb.append("Type: " + getType() + System.getProperty("line.separator"));
-            sb.append("Alternative Title: " + getAlternativeTitles() + System.getProperty("line.separator"));
-            sb.append("Studio: " + getStudio() + System.getProperty("line.separator"));
-            sb.append("Start Year: " + getStartYear() + System.getProperty("line.separator"));
-            sb.append("End Year: " + getEndYear() + System.getProperty("line.separator"));
-
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-
-        return sb.toString();
+        return Exporter.super.prettyPrint() + System.getProperty("line.separator") + PersonalExporter.super.prettyPrint();
     }
 }
