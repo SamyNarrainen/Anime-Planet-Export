@@ -29,9 +29,14 @@ public class AnimePlanetAnimeListJsonParserTest extends TestSuite {
         assertEquals(AnimePlanetAnimeStatus.WATCHED, listEntry.getStatus());
         assertNull(listEntry.getStartedDate());
         assertNull(listEntry.getCompletedDate());
-        assertEquals(4, listEntry.getRating());
+        assertEquals(8, listEntry.getRating());
         assertEquals(1, listEntry.getTimesWatched());
         assertEquals(12, listEntry.getEpisodesWatched());
     }
 
+    @Test
+    public void float_rating_correctly_parsed_to_int() {
+        final AnimePlanetAnimeListEntry listEntry = parser.getIndex(1);
+        assertEquals(7, listEntry.getRating());
+    }
 }

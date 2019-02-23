@@ -63,6 +63,19 @@ public class AnimePlanetAnimeListJsonParser implements ListParser {
         return null;
     }
 
+    @Override
+    public AnimePlanetAnimeListEntry getIndex(int index) {
+        if (entries != null && index < entries.length()) {
+            return parse(entries.getJSONObject(index));
+        }
+        return null;
+    }
+
+    @Override
+    public int getCount() {
+        return entries == null ? 0 : entries.length();
+    }
+
     private AnimePlanetAnimeListEntry parse(final JSONObject jsonEntry) {
         AnimePlanetAnimeListEntry animePlanetAnimeListEntry = null;
         try {
@@ -71,7 +84,7 @@ public class AnimePlanetAnimeListJsonParser implements ListParser {
                     AnimePlanetAnimeStatus.getFromName(jsonEntry.getString(JSON_ENTRY_STATUS)),
                     jsonEntry.isNull(JSON_ENTRY_STARTED) ? null : animePlanetDateFormat.parse(jsonEntry.getString(JSON_ENTRY_STARTED)),
                     jsonEntry.isNull(JSON_ENTRY_COMPLETED) ? null : animePlanetDateFormat.parse(jsonEntry.getString(JSON_ENTRY_COMPLETED)),
-                    jsonEntry.getInt(JSON_ENTRY_RATING),
+                    (int) (jsonEntry.getFloat(JSON_ENTRY_RATING) * 2F),
                     jsonEntry.getInt(JSON_ENTRY_TIMESWATCHED),
                     jsonEntry.getInt(JSON_ENTRY_EPISODESSEEN)
             );

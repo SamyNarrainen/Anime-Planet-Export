@@ -16,6 +16,9 @@ public interface ListEntry {
 
     Date getCompletedDate();
 
+    /**
+     * @return a rating value from 0 - 10.
+     */
     int getRating();
 
 }

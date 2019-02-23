@@ -13,4 +13,8 @@ public interface ListParser {
 
     ListEntry getNext();
 
+    ListEntry getIndex(final int index);
+
+    int getCount();
+
 }
