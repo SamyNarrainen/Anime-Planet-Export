@@ -1,13 +1,13 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.Type;
+import com.samynarrainen.domain.Entry;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Arrays;

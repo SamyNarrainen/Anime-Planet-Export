@@ -3,9 +3,9 @@ package com.samynarrainen;
 import com.samynarrainen.Data.FeedResult;
 import com.samynarrainen.Data.Status;
 import com.samynarrainen.Data.Type;
+import com.samynarrainen.domain.Entry;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;

@@ -1,5 +1,7 @@
 package com.samynarrainen;
 
+import com.samynarrainen.domain.Entry;
+
 import java.util.List;
 
 /**

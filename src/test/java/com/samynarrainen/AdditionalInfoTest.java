@@ -1,5 +1,6 @@
 package com.samynarrainen;
 
+import com.samynarrainen.domain.Entry;
 import junit.framework.TestCase;
 
 import java.io.IOException;
@@ -47,7 +48,7 @@ public class AdditionalInfoTest extends TestCase {
     */
 
     /**
-     * General test for anime that have shown issues in the past.
+     * General parser for anime that have shown issues in the past.
      * @throws IOException
      * @throws InterruptedException
      */
@@ -59,7 +60,7 @@ public class AdditionalInfoTest extends TestCase {
     }
 
     /**
-     * General test for anime that have shown issues in the past.
+     * General parser for anime that have shown issues in the past.
      * @throws IOException
      * @throws InterruptedException
      */
@@ -71,7 +72,7 @@ public class AdditionalInfoTest extends TestCase {
     }
 
     /**
-     * General test for anime that have shown issues in the past.
+     * General parser for anime that have shown issues in the past.
      * @throws IOException
      * @throws InterruptedException
      */
@@ -83,7 +84,7 @@ public class AdditionalInfoTest extends TestCase {
     }
 
     /**
-     * General test for anime that have shown issues in the past.
+     * General parser for anime that have shown issues in the past.
      * @throws IOException
      * @throws InterruptedException
      */

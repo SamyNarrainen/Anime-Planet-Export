@@ -1,4 +1,4 @@
-package com.samynarrainen;
+package com.samynarrainen.domain;
 
 import com.samynarrainen.Data.Status;
 import com.samynarrainen.Data.Type;

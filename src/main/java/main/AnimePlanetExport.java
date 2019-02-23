@@ -1,8 +1,8 @@
 package main;
 
-import main.exporter.AnimePlanetEntryExporter;
-import main.loader.EntryLoader;
-import main.loader.PageLoader;
+import main.exporter.animeplanet.AnimePlanetEntryExporter;
+import main.loader.animeplanet.EntryLoader;
+import main.loader.animeplanet.PageLoader;
 
 import java.io.IOException;
 

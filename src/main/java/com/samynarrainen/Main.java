@@ -1,6 +1,7 @@
 package com.samynarrainen;
 
 import com.samynarrainen.Data.FeedResult;
+import com.samynarrainen.domain.Entry;
 
 import javax.xml.bind.DatatypeConverter;
 import java.io.BufferedReader;
@@ -308,5 +309,9 @@ public class Main {
         }
         //Couldn't find a match
         return -1;
+    }
+
+    public static List<Entry> getEntries(final String s) {
+        throw new RuntimeException("This function isn't supported");
     }
 }
