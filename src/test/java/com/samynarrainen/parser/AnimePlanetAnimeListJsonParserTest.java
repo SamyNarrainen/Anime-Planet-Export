@@ -39,4 +39,18 @@ public class AnimePlanetAnimeListJsonParserTest extends TestSuite {
         final AnimePlanetAnimeListEntry listEntry = parser.getIndex(1);
         assertEquals(7, listEntry.getRating());
     }
+
+    @Test
+    public void rating_0_parsed_as_0() {
+        final AnimePlanetAnimeListEntry listEntry = parser.getIndex(2);
+        assertEquals(0, listEntry.getRating());
+    }
+
+    @Test
+    public void rating_5_parsed_as_10() {
+        final AnimePlanetAnimeListEntry listEntry = parser.getIndex(3);
+        assertEquals(10, listEntry.getRating());
+    }
+
+
 }

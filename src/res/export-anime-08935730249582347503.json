@@ -25,6 +25,24 @@
       "rating": 3.5,
       "times": 1,
       "eps": 13
+    },
+    {
+      "name": "Yuru Yuri \u266a\u266a",
+      "status": "watched",
+      "started": null,
+      "completed": null,
+      "rating": 0,
+      "times": 1,
+      "eps": 12
+    },
+    {
+      "name": "Clannad",
+      "status": "watched",
+      "started": null,
+      "completed": null,
+      "rating": 5,
+      "times": 1,
+      "eps": 23
     }
   ]
 }
