@@ -28,8 +28,13 @@ public class AnimePlanetAnimeListJsonParser implements ListParser {
     private static String JSON_ENTRY_TIMESWATCHED = "times";
     private static String JSON_ENTRY_EPISODESSEEN = "eps";
 
-    //2017-05-11 12:25:57-07
-    private static DateFormat animePlanetDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:SS-Z");
+    /**
+     * {@link DateFormat} instance to parse dates present in the JSON entries. An example of such a date is
+     * 2017-05-11 12:25:57-07. Note that the final 2 digits are a RFC 882 timezone value. However, 2 digits are missing.
+     * Therefore, before parsing a date we must append '00' to the String. As of version 0.1a this is fine as the only
+     * timezones that're present are 0800 and 0700.
+     */
+    private static DateFormat animePlanetDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZ");
 
     private final String animePlanetAnimeListJsonFile;
     private JSONArray entries;
@@ -82,8 +87,12 @@ public class AnimePlanetAnimeListJsonParser implements ListParser {
             animePlanetAnimeListEntry = new AnimePlanetAnimeListEntry(
                     jsonEntry.getString(JSON_ENTRY_NAME),
                     AnimePlanetAnimeStatus.getFromName(jsonEntry.getString(JSON_ENTRY_STATUS)),
-                    jsonEntry.isNull(JSON_ENTRY_STARTED) ? null : animePlanetDateFormat.parse(jsonEntry.getString(JSON_ENTRY_STARTED)),
-                    jsonEntry.isNull(JSON_ENTRY_COMPLETED) ? null : animePlanetDateFormat.parse(jsonEntry.getString(JSON_ENTRY_COMPLETED)),
+                    // Anime-Planet doesn't strictly adhere to the RFC 822 timezone format, missing 2 digits on the end.
+                    // Presumably this is to save space, however we need to add those digits on to parse the value.
+                    jsonEntry.isNull(JSON_ENTRY_STARTED) ? null :
+                            animePlanetDateFormat.parse(jsonEntry.getString(JSON_ENTRY_STARTED) + "00"),
+                    jsonEntry.isNull(JSON_ENTRY_COMPLETED) ? null :
+                            animePlanetDateFormat.parse(jsonEntry.getString(JSON_ENTRY_COMPLETED) + "00"),
                     (int) (jsonEntry.getFloat(JSON_ENTRY_RATING) * 2F),
                     jsonEntry.getInt(JSON_ENTRY_TIMESWATCHED),
                     jsonEntry.getInt(JSON_ENTRY_EPISODESSEEN)

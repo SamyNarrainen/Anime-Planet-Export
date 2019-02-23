@@ -7,6 +7,8 @@ import junit.framework.TestSuite;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Calendar;
+
 import static junit.framework.TestCase.assertNull;
 import static org.junit.Assert.assertEquals;
 
@@ -52,5 +54,15 @@ public class AnimePlanetAnimeListJsonParserTest extends TestSuite {
         assertEquals(10, listEntry.getRating());
     }
 
+    @Test
+    public void timezone_0800_started_date() {
+        final AnimePlanetAnimeListEntry listEntry = parser.getIndex(4);
+        final Calendar calendar = Calendar.getInstance();
+        calendar.setTime(listEntry.getStartedDate());
+
+        assertEquals(2017, calendar.get(Calendar.YEAR));
+        assertEquals(2, calendar.get(Calendar.MONTH));
+        assertEquals(11, calendar.get(Calendar.DAY_OF_MONTH));
+    }
 
 }

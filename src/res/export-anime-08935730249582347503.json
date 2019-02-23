@@ -43,6 +43,15 @@
       "rating": 5,
       "times": 1,
       "eps": 23
+    },
+    {
+      "name": "5 Centimeters per Second",
+      "status": "watched",
+      "started": "2017-03-11 10:12:16-08",
+      "completed": "2017-03-11 10:12:16-08",
+      "rating": 0,
+      "times": 1,
+      "eps": 1
     }
   ]
 }
