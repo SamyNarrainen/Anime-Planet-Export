@@ -1,6 +1,5 @@
 package com.samynarrainen.parser.parser.animeplanet;
 
-import com.samynarrainen.domain.ListEntry;
 import com.samynarrainen.domain.domain.animeplanet.AnimePlanetAnimeListEntry;
 import com.samynarrainen.domain.domain.animeplanet.AnimePlanetAnimeStatus;
 import com.samynarrainen.parser.ListParser;
@@ -18,6 +17,9 @@ public class AnimePlanetAnimeListJsonParser implements ListParser {
 
     /** This is the version of the anime-planet JSON export format that this parser was written for. */
     private static String VERSION = "0.1a";
+    private static String JSON_EXPORT = "export";
+    private static String JSON_VERSION = "version";
+    private static String VERSION_DISPARITY_MESSAGE = "WARNING: parser version %s doesn't match file version %s";
 
     private static String JSON_LIST_ENTRIES = "entries";
     private static String JSON_ENTRY_NAME = "name";
@@ -52,8 +54,12 @@ public class AnimePlanetAnimeListJsonParser implements ListParser {
             final String jsonString = new String(Files.readAllBytes(Paths.get(animePlanetAnimeListJsonFile)));
             final JSONObject rootJsonObject = new JSONObject(jsonString);
             // TODO parse the version to present a warning if it's changed.
-            entries = rootJsonObject.getJSONArray(JSON_LIST_ENTRIES);
 
+            final String jsonFileVersion = rootJsonObject.getJSONObject(JSON_EXPORT).getString(JSON_VERSION);
+            if (!jsonFileVersion.equals(VERSION)) {
+                System.out.println(String.format(VERSION_DISPARITY_MESSAGE, VERSION, jsonFileVersion));
+            }
+            entries = rootJsonObject.getJSONArray(JSON_LIST_ENTRIES);
         }
         catch (IOException e) {
             e.printStackTrace();
