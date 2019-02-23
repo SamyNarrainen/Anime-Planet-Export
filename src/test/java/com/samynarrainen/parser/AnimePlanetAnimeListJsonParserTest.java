@@ -65,4 +65,10 @@ public class AnimePlanetAnimeListJsonParserTest extends TestSuite {
         assertEquals(11, calendar.get(Calendar.DAY_OF_MONTH));
     }
 
+    @Test
+    public void unicode_char_in_name_decoded() {
+        final AnimePlanetAnimeListEntry listEntry = parser.getIndex(2);
+        assertEquals("Yuru Yuri ♪♪", listEntry.getName());
+    }
+
 }
