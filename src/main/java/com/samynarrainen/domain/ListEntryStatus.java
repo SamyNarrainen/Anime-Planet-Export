@@ -10,4 +10,16 @@ public interface ListEntryStatus {
 
     String getName();
 
+    boolean isWatched();
+
+    boolean isWatching();
+
+    boolean isDropped();
+
+    boolean isWantToWatch();
+
+    boolean isStalled();
+
+    boolean isWontWatch();
+
 }

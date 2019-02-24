@@ -23,6 +23,9 @@ public class MyAnimeListManager {
 
     private static boolean VERBOS = true;
 
+    /** The amount of time between each page request to avoid spam. */
+    private static long REQUEST_INTERVAL_MS = 2000;
+
     /**
      * Deletes ALL anime entries conntained in the specified user's MAL account.
      * @param authentication
@@ -243,7 +246,7 @@ public class MyAnimeListManager {
      * @throws IOException
      * @throws URISyntaxException
      */
-    public static Result getMALID(String name) throws IOException, URISyntaxException {
+    public static Result getMALID(String name) throws IOException, URISyntaxException, InterruptedException {
         String contents = Main.getPageContents(new URL("https://myanimelist.net/search/all?q=" + name.replace(" ", "%20")));
 
         //Group 1: ID
@@ -257,15 +260,22 @@ public class MyAnimeListManager {
             int id = Integer.parseInt(matcherId.group(1));
             String title = StringEscapeUtils.unescapeHtml4(matcherId.group(2)); //TODO should be doing this more, all around?
 
+            Thread.sleep(REQUEST_INTERVAL_MS);
             if(name.compareToIgnoreCase(title) == 0) {
                 return new Result(id, true);
-            } else {
-                //TODO check the actual page, sometimes there are differences between the API and the page names, AKA JoJo S2.
-                int distance = StringUtils.getLevenshteinDistance(name, title);
-                if(distance < Main.LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
-                    if(VERBOS) System.out.println("Distance change for " + name + " with " + title + " for distance " + distance);
-                    shortestDistance = distance;
-                    shortestDistanceId = id;
+            }
+            else {
+                final Result pageResult = getMALIDFromPage(name, id);
+                if (pageResult.getId() != -1) {
+                    return pageResult;
+                }
+                else {
+                    int distance = StringUtils.getLevenshteinDistance(name, title);
+                    if(distance < Main.LAVEN_DIST && (shortestDistance == -1 || distance < shortestDistance)) {
+                        if(VERBOS) System.out.println("Distance change for " + name + " with " + title + " for distance " + distance);
+                        shortestDistance = distance;
+                        shortestDistanceId = id;
+                    }
                 }
             }
         }
@@ -275,6 +285,21 @@ public class MyAnimeListManager {
             return new Result(shortestDistanceId, false);
         }
 
+        return new Result(-1, false);
+    }
+
+    public static Result getMALIDFromPage(final String name, final int id) throws IOException {
+        final String contents = Main.getPageContents(new URL("https://myanimelist.net/anime/" + id));
+
+        //Group 1: English title
+        String regexEnglishTitle = "English:.*?>\\s(.*?)\\s\\s<";
+        Matcher matcherEnglishTitle = Pattern.compile(regexEnglishTitle).matcher(contents);
+        while (matcherEnglishTitle.find()) {
+            final String englishTitle = StringEscapeUtils.unescapeHtml4(matcherEnglishTitle.group(1));
+            if (name.compareToIgnoreCase(englishTitle) == 0) {
+                return new Result(id, true);
+            }
+        }
         return new Result(-1, false);
     }
 }

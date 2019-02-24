@@ -15,4 +15,8 @@ public class Result {
         this.id = id;
         this.perfectMatch = perfectMatch;
     }
+
+    public int getId() {
+        return id;
+    }
 }
